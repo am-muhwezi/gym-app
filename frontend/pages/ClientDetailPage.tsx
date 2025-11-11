@@ -1,0 +1,1513 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { useClients } from '../context/ClientContext';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import { Client, Goal, Payment, Log, ClientProgress, WorkoutRoutine } from '../types';
+import { clientService, goalService, paymentService, logService, progressService } from '../services';
+
+const BackArrowIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>);
+
+const ClientDetailPage: React.FC = () => {
+    const { clientId } = useParams<{ clientId: string }>();
+    const { getClientById } = useClients();
+    const [activeTab, setActiveTab] = useState('overview');
+    const [client, setClient] = useState<Client | null>(null);
+    const [goals, setGoals] = useState<Goal[]>([]);
+    const [payments, setPayments] = useState<Payment[]>([]);
+    const [logs, setLogs] = useState<Log[]>([]);
+    const [progress, setProgress] = useState<ClientProgress[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    // Load client data
+    useEffect(() => {
+        const loadClientData = async () => {
+            if (!clientId) return;
+
+            setLoading(true);
+            try {
+                // Try to get from context first
+                const contextClient = getClientById(clientId);
+                if (contextClient) {
+                    setClient(contextClient);
+                } else {
+                    // Fallback to API
+                    const fetchedClient = await clientService.getClient(clientId);
+                    setClient(fetchedClient);
+                }
+
+                // Load related data
+                const [goalsData, paymentsData, logsData, progressData] = await Promise.all([
+                    goalService.getGoalsByClient(clientId).catch(() => []),
+                    paymentService.getPaymentsByClient(clientId).catch(() => []),
+                    logService.getLogsByClient(clientId).catch(() => []),
+                    progressService.getProgressByClient(clientId).catch(() => []),
+                ]);
+
+                setGoals(goalsData);
+                setPayments(paymentsData);
+                setLogs(logsData);
+                setProgress(progressData);
+            } catch (error) {
+                console.error('Error loading client data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadClientData();
+    }, [clientId, getClientById]);
+
+    const refreshGoals = async () => {
+        if (!clientId) return;
+        const data = await goalService.getGoalsByClient(clientId);
+        setGoals(data);
+    };
+
+    const refreshPayments = async () => {
+        if (!clientId) return;
+        const data = await paymentService.getPaymentsByClient(clientId);
+        setPayments(data);
+    };
+
+    const refreshLogs = async () => {
+        if (!clientId) return;
+        const data = await logService.getLogsByClient(clientId);
+        setLogs(data);
+    };
+
+    const refreshProgress = async () => {
+        if (!clientId) return;
+        const data = await progressService.getProgressByClient(clientId);
+        setProgress(data);
+    };
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <p className="text-gray-400">Loading client details...</p>
+            </div>
+        );
+    }
+
+    if (!client) {
+        return (
+            <div className="text-center py-10">
+                <h2 className="text-2xl font-bold">Client not found</h2>
+                <Link to="/clients" className="text-brand-primary hover:underline mt-4 inline-block">Go back to clients list</Link>
+            </div>
+        );
+    }
+
+    const tabs = [
+        { id: 'overview', label: 'Overview' },
+        { id: 'bio', label: 'Bio & Progress' },
+        { id: 'goals', label: 'Goals' },
+        { id: 'workouts', label: 'Workouts' },
+        { id: 'logs', label: 'Daily Logs' },
+        { id: 'payments', label: 'Payments' },
+    ];
+
+    return (
+        <div className="space-y-6">
+            <Link to="/clients" className="flex items-center space-x-2 text-brand-primary hover:text-brand-secondary">
+                <BackArrowIcon />
+                <span>All Clients</span>
+            </Link>
+
+            {/* Client Header */}
+            <Card>
+                <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 bg-brand-primary/20 rounded-full flex items-center justify-center text-brand-primary text-3xl sm:text-4xl font-bold">
+                        {client.first_name.charAt(0)}{client.last_name.charAt(0)}
+                    </div>
+                    <div className="text-center sm:text-left flex-1">
+                        <h1 className="text-3xl sm:text-4xl font-bold text-white">
+                            {client.full_name || `${client.first_name} ${client.last_name}`}
+                        </h1>
+                        <div className="mt-2 space-y-1">
+                            <p className="text-gray-400">{client.email}</p>
+                            <p className="text-gray-400">{client.phone}</p>
+                            <p className="text-sm text-gray-500">
+                                Member since: {new Date(client.created_at).toLocaleDateString()}
+                            </p>
+                            <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
+                                client.status === 'active' ? 'bg-green-500/20 text-green-400' :
+                                client.status === 'inactive' ? 'bg-gray-500/20 text-gray-400' :
+                                'bg-red-500/20 text-red-400'
+                            }`}>
+                                {client.status.toUpperCase()}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </Card>
+
+            {/* Tabs */}
+            <div className="border-b border-dark-700 overflow-x-auto">
+                <nav className="flex space-x-4 sm:space-x-8 min-w-max">
+                    {tabs.map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`py-4 px-1 whitespace-nowrap capitalize font-medium transition-colors duration-200 ${
+                                activeTab === tab.id ? 'text-brand-primary border-b-2 border-brand-primary' : 'text-gray-400 hover:text-white'
+                            }`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </nav>
+            </div>
+
+            {/* Tab Content */}
+            <div>
+                {activeTab === 'overview' && (
+                    <OverviewTab
+                        client={client}
+                        goals={goals}
+                        payments={payments}
+                        logs={logs}
+                        progress={progress}
+                    />
+                )}
+                {activeTab === 'bio' && (
+                    <BioProgressTab
+                        client={client}
+                        progress={progress}
+                        onRefresh={refreshProgress}
+                    />
+                )}
+                {activeTab === 'goals' && (
+                    <GoalsTab
+                        clientId={client.id}
+                        goals={goals}
+                        onRefresh={refreshGoals}
+                    />
+                )}
+                {activeTab === 'workouts' && (
+                    <WorkoutsTab clientId={client.id} />
+                )}
+                {activeTab === 'logs' && (
+                    <LogsTab
+                        clientId={client.id}
+                        logs={logs}
+                        onRefresh={refreshLogs}
+                    />
+                )}
+                {activeTab === 'payments' && (
+                    <PaymentsTab
+                        clientId={client.id}
+                        payments={payments}
+                        onRefresh={refreshPayments}
+                    />
+                )}
+            </div>
+        </div>
+    );
+};
+
+// ============ OVERVIEW TAB ============
+const OverviewTab: React.FC<{
+    client: Client;
+    goals: Goal[];
+    payments: Payment[];
+    logs: Log[];
+    progress: ClientProgress[];
+}> = ({ client, goals, payments, logs, progress }) => {
+    const activeGoals = goals.filter(g => g.status === 'active');
+    const recentLogs = logs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
+    const pendingPayments = payments.filter(p => p.status === 'pending');
+    const latestProgress = progress.sort((a, b) => new Date(b.recorded_date).getTime() - new Date(a.recorded_date).getTime())[0];
+
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {/* Active Goals */}
+            <Card>
+                <h3 className="text-xl font-semibold mb-4 text-white">Active Goals</h3>
+                {activeGoals.length > 0 ? (
+                    <ul className="space-y-3">
+                        {activeGoals.map(goal => (
+                            <li key={goal.id} className="p-3 bg-dark-800 rounded-lg">
+                                <p className="font-semibold text-white">{goal.title}</p>
+                                <p className="text-sm text-gray-400">{goal.description}</p>
+                                {goal.target_date && (
+                                    <p className="text-xs text-brand-primary mt-1">
+                                        Due: {new Date(goal.target_date).toLocaleDateString()}
+                                    </p>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="text-gray-400">No active goals set.</p>
+                )}
+            </Card>
+
+            {/* Payment Status */}
+            <Card>
+                <h3 className="text-xl font-semibold mb-4 text-white">Payment Status</h3>
+                {pendingPayments.length > 0 ? (
+                    <div className="space-y-3">
+                        <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                            <p className="text-yellow-400 font-semibold">{pendingPayments.length} Pending Payment(s)</p>
+                            <p className="text-2xl font-bold text-white mt-2">
+                                KES {pendingPayments.reduce((sum, p) => sum + p.amount, 0).toLocaleString()}
+                            </p>
+                        </div>
+                        {pendingPayments.slice(0, 2).map(payment => (
+                            <div key={payment.id} className="p-3 bg-dark-800 rounded-lg">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="text-sm text-gray-400">{payment.description || 'Payment'}</p>
+                                        <p className="font-bold text-white">KES {payment.amount.toLocaleString()}</p>
+                                    </div>
+                                    {payment.due_date && (
+                                        <p className="text-xs text-gray-500">
+                                            Due: {new Date(payment.due_date).toLocaleDateString()}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-center">
+                        <p className="text-green-400 font-semibold">All payments up to date!</p>
+                    </div>
+                )}
+            </Card>
+
+            {/* Latest Progress */}
+            <Card>
+                <h3 className="text-xl font-semibold mb-4 text-white">Latest Measurements</h3>
+                {latestProgress ? (
+                    <div className="space-y-3">
+                        <p className="text-sm text-gray-400">
+                            Recorded: {new Date(latestProgress.recorded_date).toLocaleDateString()}
+                        </p>
+                        {latestProgress.weight && (
+                            <div className="flex justify-between">
+                                <span className="text-gray-400">Weight</span>
+                                <span className="font-bold text-white">{latestProgress.weight} kg</span>
+                            </div>
+                        )}
+                        {latestProgress.body_fat_percentage && (
+                            <div className="flex justify-between">
+                                <span className="text-gray-400">Body Fat</span>
+                                <span className="font-bold text-white">{latestProgress.body_fat_percentage}%</span>
+                            </div>
+                        )}
+                        {latestProgress.muscle_mass && (
+                            <div className="flex justify-between">
+                                <span className="text-gray-400">Muscle Mass</span>
+                                <span className="font-bold text-white">{latestProgress.muscle_mass} kg</span>
+                            </div>
+                        )}
+                        {(latestProgress.weight && latestProgress.weight > 0) && (
+                            <div className="mt-4 p-3 bg-dark-800 rounded-lg">
+                                <p className="text-sm text-gray-400 mb-1">BMI (estimated)</p>
+                                <p className="text-2xl font-bold text-brand-primary">
+                                    {client.dob && latestProgress.weight ?
+                                        (latestProgress.weight / Math.pow(1.75, 2)).toFixed(1) :
+                                        'N/A'}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <p className="text-gray-400">No progress recorded yet.</p>
+                )}
+            </Card>
+
+            {/* Recent Activity */}
+            <Card className="lg:col-span-2 xl:col-span-3">
+                <h3 className="text-xl font-semibold mb-4 text-white">Recent Activity Logs</h3>
+                {recentLogs.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {recentLogs.map(log => (
+                            <div key={log.id} className="p-4 bg-dark-800 rounded-lg">
+                                <div className="flex justify-between items-start mb-2">
+                                    <p className="font-semibold text-brand-primary">
+                                        {new Date(log.date).toLocaleDateString()}
+                                    </p>
+                                    {log.performance_rating && (
+                                        <div className="flex items-center space-x-1">
+                                            {[...Array(5)].map((_, i) => (
+                                                <span key={i} className={i < log.performance_rating! ? 'text-yellow-400' : 'text-gray-600'}>
+                                                    ★
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <p className="text-sm text-gray-300">{log.notes}</p>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-gray-400">No activity logs yet.</p>
+                )}
+            </Card>
+        </div>
+    );
+};
+
+// ============ BIO & PROGRESS TAB ============
+const BioProgressTab: React.FC<{
+    client: Client;
+    progress: ClientProgress[];
+    onRefresh: () => void;
+}> = ({ client, progress, onRefresh }) => {
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [formData, setFormData] = useState({
+        recorded_date: new Date().toISOString().split('T')[0],
+        weight: '',
+        body_fat_percentage: '',
+        muscle_mass: '',
+        chest: '',
+        waist: '',
+        hips: '',
+        arms: '',
+        thighs: '',
+        notes: '',
+    });
+    const [submitting, setSubmitting] = useState(false);
+
+    const sortedProgress = [...progress].sort((a, b) =>
+        new Date(b.recorded_date).getTime() - new Date(a.recorded_date).getTime()
+    );
+
+    const handleSubmit = async () => {
+        setSubmitting(true);
+        try {
+            await progressService.createProgress(client.id, {
+                recorded_date: formData.recorded_date,
+                weight: formData.weight ? parseFloat(formData.weight) : undefined,
+                body_fat_percentage: formData.body_fat_percentage ? parseFloat(formData.body_fat_percentage) : undefined,
+                muscle_mass: formData.muscle_mass ? parseFloat(formData.muscle_mass) : undefined,
+                chest: formData.chest ? parseFloat(formData.chest) : undefined,
+                waist: formData.waist ? parseFloat(formData.waist) : undefined,
+                hips: formData.hips ? parseFloat(formData.hips) : undefined,
+                arms: formData.arms ? parseFloat(formData.arms) : undefined,
+                thighs: formData.thighs ? parseFloat(formData.thighs) : undefined,
+                notes: formData.notes || undefined,
+            });
+            await onRefresh();
+            setShowAddModal(false);
+            setFormData({
+                recorded_date: new Date().toISOString().split('T')[0],
+                weight: '', body_fat_percentage: '', muscle_mass: '',
+                chest: '', waist: '', hips: '', arms: '', thighs: '', notes: '',
+            });
+        } catch (error: any) {
+            alert(`Failed to add progress: ${error.message}`);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-white">Bio & Progress Tracking</h2>
+                <Button onClick={() => setShowAddModal(true)}>Add Measurement</Button>
+            </div>
+
+            {/* Client Bio */}
+            <Card>
+                <h3 className="text-xl font-semibold mb-4 text-white">Client Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {client.dob && (
+                        <div>
+                            <p className="text-sm text-gray-400">Date of Birth</p>
+                            <p className="font-semibold text-white">{new Date(client.dob).toLocaleDateString()}</p>
+                        </div>
+                    )}
+                    {client.gender && (
+                        <div>
+                            <p className="text-sm text-gray-400">Gender</p>
+                            <p className="font-semibold text-white">
+                                {client.gender === 'M' ? 'Male' : client.gender === 'F' ? 'Female' : 'Other'}
+                            </p>
+                        </div>
+                    )}
+                    {client.membership_start_date && (
+                        <div>
+                            <p className="text-sm text-gray-400">Membership Start</p>
+                            <p className="font-semibold text-white">
+                                {new Date(client.membership_start_date).toLocaleDateString()}
+                            </p>
+                        </div>
+                    )}
+                </div>
+                {client.notes && (
+                    <div className="mt-4 p-3 bg-dark-800 rounded-lg">
+                        <p className="text-sm text-gray-400">Notes</p>
+                        <p className="text-white mt-1">{client.notes}</p>
+                    </div>
+                )}
+            </Card>
+
+            {/* Progress History */}
+            <Card>
+                <h3 className="text-xl font-semibold mb-4 text-white">Progress History</h3>
+                {sortedProgress.length > 0 ? (
+                    <div className="space-y-4">
+                        {sortedProgress.map((entry) => (
+                            <div key={entry.id} className="p-4 bg-dark-800 rounded-lg">
+                                <p className="font-semibold text-brand-primary mb-3">
+                                    {new Date(entry.recorded_date).toLocaleDateString()}
+                                </p>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                    {entry.weight && (
+                                        <div>
+                                            <p className="text-xs text-gray-400">Weight</p>
+                                            <p className="font-semibold text-white">{entry.weight} kg</p>
+                                        </div>
+                                    )}
+                                    {entry.body_fat_percentage && (
+                                        <div>
+                                            <p className="text-xs text-gray-400">Body Fat</p>
+                                            <p className="font-semibold text-white">{entry.body_fat_percentage}%</p>
+                                        </div>
+                                    )}
+                                    {entry.muscle_mass && (
+                                        <div>
+                                            <p className="text-xs text-gray-400">Muscle Mass</p>
+                                            <p className="font-semibold text-white">{entry.muscle_mass} kg</p>
+                                        </div>
+                                    )}
+                                    {entry.chest && (
+                                        <div>
+                                            <p className="text-xs text-gray-400">Chest</p>
+                                            <p className="font-semibold text-white">{entry.chest} cm</p>
+                                        </div>
+                                    )}
+                                    {entry.waist && (
+                                        <div>
+                                            <p className="text-xs text-gray-400">Waist</p>
+                                            <p className="font-semibold text-white">{entry.waist} cm</p>
+                                        </div>
+                                    )}
+                                    {entry.hips && (
+                                        <div>
+                                            <p className="text-xs text-gray-400">Hips</p>
+                                            <p className="font-semibold text-white">{entry.hips} cm</p>
+                                        </div>
+                                    )}
+                                    {entry.arms && (
+                                        <div>
+                                            <p className="text-xs text-gray-400">Arms</p>
+                                            <p className="font-semibold text-white">{entry.arms} cm</p>
+                                        </div>
+                                    )}
+                                    {entry.thighs && (
+                                        <div>
+                                            <p className="text-xs text-gray-400">Thighs</p>
+                                            <p className="font-semibold text-white">{entry.thighs} cm</p>
+                                        </div>
+                                    )}
+                                </div>
+                                {entry.notes && (
+                                    <p className="mt-3 text-sm text-gray-300 italic">{entry.notes}</p>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-gray-400">No progress measurements recorded yet.</p>
+                )}
+            </Card>
+
+            {/* Add Progress Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <h2 className="text-2xl font-bold mb-4 text-white">Add Progress Measurement</h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">Date</label>
+                                <input
+                                    type="date"
+                                    value={formData.recorded_date}
+                                    onChange={(e) => setFormData({...formData, recorded_date: e.target.value})}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                />
+                            </div>
+
+                            <h4 className="font-semibold text-white mt-4">Body Composition</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-1">Weight (kg)</label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        value={formData.weight}
+                                        onChange={(e) => setFormData({...formData, weight: e.target.value})}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-1">Body Fat (%)</label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        value={formData.body_fat_percentage}
+                                        onChange={(e) => setFormData({...formData, body_fat_percentage: e.target.value})}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-1">Muscle Mass (kg)</label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        value={formData.muscle_mass}
+                                        onChange={(e) => setFormData({...formData, muscle_mass: e.target.value})}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    />
+                                </div>
+                            </div>
+
+                            <h4 className="font-semibold text-white mt-4">Measurements (cm)</h4>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-1">Chest</label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        value={formData.chest}
+                                        onChange={(e) => setFormData({...formData, chest: e.target.value})}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-1">Waist</label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        value={formData.waist}
+                                        onChange={(e) => setFormData({...formData, waist: e.target.value})}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-1">Hips</label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        value={formData.hips}
+                                        onChange={(e) => setFormData({...formData, hips: e.target.value})}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-1">Arms</label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        value={formData.arms}
+                                        onChange={(e) => setFormData({...formData, arms: e.target.value})}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-1">Thighs</label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        value={formData.thighs}
+                                        onChange={(e) => setFormData({...formData, thighs: e.target.value})}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                                <textarea
+                                    value={formData.notes}
+                                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    rows={3}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                            <Button variant="secondary" onClick={() => setShowAddModal(false)} disabled={submitting}>
+                                Cancel
+                            </Button>
+                            <Button onClick={handleSubmit} disabled={submitting}>
+                                {submitting ? 'Adding...' : 'Add Measurement'}
+                            </Button>
+                        </div>
+                    </Card>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ============ GOALS TAB ============
+const GoalsTab: React.FC<{
+    clientId: string;
+    goals: Goal[];
+    onRefresh: () => void;
+}> = ({ clientId, goals, onRefresh }) => {
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [formData, setFormData] = useState({
+        goal_type: 'weight_loss' as any,
+        title: '',
+        description: '',
+        target_value: '',
+        current_value: '',
+        target_date: '',
+    });
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleSubmit = async () => {
+        if (!formData.title || !formData.description) {
+            alert('Please fill in title and description');
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            await goalService.createGoal(clientId, formData);
+            await onRefresh();
+            setShowAddModal(false);
+            setFormData({
+                goal_type: 'weight_loss',
+                title: '',
+                description: '',
+                target_value: '',
+                current_value: '',
+                target_date: '',
+            });
+        } catch (error: any) {
+            alert(`Failed to create goal: ${error.message}`);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleMarkComplete = async (goalId: string) => {
+        try {
+            await goalService.updateGoal(goalId, { status: 'completed' });
+            await onRefresh();
+        } catch (error: any) {
+            alert(`Failed to update goal: ${error.message}`);
+        }
+    };
+
+    const activeGoals = goals.filter(g => g.status === 'active');
+    const completedGoals = goals.filter(g => g.status === 'completed');
+
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-white">Goals</h2>
+                <Button onClick={() => setShowAddModal(true)}>Add Goal</Button>
+            </div>
+
+            {/* Active Goals */}
+            <Card>
+                <h3 className="text-xl font-semibold mb-4 text-white">Active Goals ({activeGoals.length})</h3>
+                {activeGoals.length > 0 ? (
+                    <div className="space-y-4">
+                        {activeGoals.map(goal => (
+                            <div key={goal.id} className="p-4 bg-dark-800 rounded-lg">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-brand-primary/20 text-brand-primary">
+                                                {goal.goal_type.replace('_', ' ').toUpperCase()}
+                                            </span>
+                                            <h4 className="font-bold text-white">{goal.title}</h4>
+                                        </div>
+                                        <p className="text-gray-300 mt-2">{goal.description}</p>
+                                        {goal.target_value && (
+                                            <div className="mt-3">
+                                                <div className="flex justify-between text-sm mb-1">
+                                                    <span className="text-gray-400">Progress</span>
+                                                    <span className="text-white">
+                                                        {goal.current_value || '0'} / {goal.target_value}
+                                                    </span>
+                                                </div>
+                                                <div className="relative w-full bg-dark-700 rounded-full h-6">
+                                                    <div
+                                                        className="bg-gradient-to-r from-brand-primary to-brand-secondary h-6 rounded-full flex items-center justify-center transition-all duration-300"
+                                                        style={{
+                                                            width: `${Math.min(100, ((parseFloat(goal.current_value || '0') / parseFloat(goal.target_value || '1')) * 100))}%`
+                                                        }}
+                                                    >
+                                                        <span className="text-xs font-bold text-white px-2">
+                                                            {Math.round(Math.min(100, ((parseFloat(goal.current_value || '0') / parseFloat(goal.target_value || '1')) * 100)))}%
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {goal.target_date && (
+                                            <p className="text-sm text-gray-400 mt-2">
+                                                Target Date: {new Date(goal.target_date).toLocaleDateString()}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <Button size="sm" onClick={() => handleMarkComplete(goal.id)}>
+                                        Mark Complete
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-gray-400">No active goals. Add one to get started!</p>
+                )}
+            </Card>
+
+            {/* Completed Goals */}
+            {completedGoals.length > 0 && (
+                <Card>
+                    <h3 className="text-xl font-semibold mb-4 text-white">Completed Goals ({completedGoals.length})</h3>
+                    <div className="space-y-3">
+                        {completedGoals.map(goal => (
+                            <div key={goal.id} className="p-3 bg-dark-800 rounded-lg opacity-75">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-green-400">✓</span>
+                                    <h4 className="font-semibold text-white">{goal.title}</h4>
+                                </div>
+                                {goal.completed_at && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Completed on {new Date(goal.completed_at).toLocaleDateString()}
+                                    </p>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </Card>
+            )}
+
+            {/* Add Goal Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-lg">
+                        <h2 className="text-2xl font-bold mb-4 text-white">Add New Goal</h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">Goal Type</label>
+                                <select
+                                    value={formData.goal_type}
+                                    onChange={(e) => setFormData({...formData, goal_type: e.target.value as any})}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                >
+                                    <option value="weight_loss">Weight Loss</option>
+                                    <option value="muscle_gain">Muscle Gain</option>
+                                    <option value="strength">Strength</option>
+                                    <option value="endurance">Endurance</option>
+                                    <option value="flexibility">Flexibility</option>
+                                    <option value="general_fitness">General Fitness</option>
+                                    <option value="rehabilitation">Rehabilitation</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">Title *</label>
+                                <input
+                                    type="text"
+                                    value={formData.title}
+                                    onChange={(e) => setFormData({...formData, title: e.target.value})}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    placeholder="e.g., Lose 10kg"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">Description *</label>
+                                <textarea
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    rows={3}
+                                    placeholder="Describe the goal..."
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-1">Current Value</label>
+                                    <input
+                                        type="text"
+                                        value={formData.current_value}
+                                        onChange={(e) => setFormData({...formData, current_value: e.target.value})}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                        placeholder="e.g., 80kg"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-1">Target Value</label>
+                                    <input
+                                        type="text"
+                                        value={formData.target_value}
+                                        onChange={(e) => setFormData({...formData, target_value: e.target.value})}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                        placeholder="e.g., 70kg"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">Target Date</label>
+                                <input
+                                    type="date"
+                                    value={formData.target_date}
+                                    onChange={(e) => setFormData({...formData, target_date: e.target.value})}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                            <Button variant="secondary" onClick={() => setShowAddModal(false)} disabled={submitting}>
+                                Cancel
+                            </Button>
+                            <Button onClick={handleSubmit} disabled={submitting}>
+                                {submitting ? 'Adding...' : 'Add Goal'}
+                            </Button>
+                        </div>
+                    </Card>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ============ WORKOUTS TAB ============
+const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
+    const [workoutDays, setWorkoutDays] = useState<Array<{
+        id: string;
+        day: string;
+        exercises: Array<{
+            id: string;
+            name: string;
+            sets: number;
+            reps: string;
+            rest: string;
+        }>;
+    }>>([]);
+    const [showAddDayModal, setShowAddDayModal] = useState(false);
+    const [showAddExerciseModal, setShowAddExerciseModal] = useState(false);
+    const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
+    const [newDay, setNewDay] = useState('');
+    const [newExercise, setNewExercise] = useState({
+        name: '',
+        sets: 3,
+        reps: '10-12',
+        rest: '60s',
+    });
+
+    const handleAddDay = () => {
+        if (!newDay.trim()) {
+            alert('Please enter a day name');
+            return;
+        }
+
+        setWorkoutDays([
+            ...workoutDays,
+            {
+                id: Date.now().toString(),
+                day: newDay,
+                exercises: [],
+            },
+        ]);
+        setNewDay('');
+        setShowAddDayModal(false);
+    };
+
+    const handleAddExercise = () => {
+        if (!selectedDayId || !newExercise.name.trim()) {
+            alert('Please enter exercise name');
+            return;
+        }
+
+        setWorkoutDays(workoutDays.map(day => {
+            if (day.id === selectedDayId) {
+                return {
+                    ...day,
+                    exercises: [
+                        ...day.exercises,
+                        {
+                            id: Date.now().toString(),
+                            ...newExercise,
+                        },
+                    ],
+                };
+            }
+            return day;
+        }));
+
+        setNewExercise({ name: '', sets: 3, reps: '10-12', rest: '60s' });
+        setShowAddExerciseModal(false);
+        setSelectedDayId(null);
+    };
+
+    const handleRemoveExercise = (dayId: string, exerciseId: string) => {
+        setWorkoutDays(workoutDays.map(day => {
+            if (day.id === dayId) {
+                return {
+                    ...day,
+                    exercises: day.exercises.filter(ex => ex.id !== exerciseId),
+                };
+            }
+            return day;
+        }));
+    };
+
+    const handleRemoveDay = (dayId: string) => {
+        setWorkoutDays(workoutDays.filter(day => day.id !== dayId));
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-white">Workout Program</h2>
+                <Button onClick={() => setShowAddDayModal(true)}>Add Workout Day</Button>
+            </div>
+
+            {workoutDays.length > 0 ? (
+                <div className="space-y-4">
+                    {workoutDays.map(day => (
+                        <Card key={day.id}>
+                            <div className="flex justify-between items-start mb-4">
+                                <h3 className="text-xl font-semibold text-white">{day.day}</h3>
+                                <div className="flex gap-2">
+                                    <Button
+                                        size="sm"
+                                        onClick={() => {
+                                            setSelectedDayId(day.id);
+                                            setShowAddExerciseModal(true);
+                                        }}
+                                    >
+                                        Add Exercise
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        onClick={() => handleRemoveDay(day.id)}
+                                    >
+                                        Remove Day
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {day.exercises.length > 0 ? (
+                                <div className="space-y-2">
+                                    {day.exercises.map((exercise, index) => (
+                                        <div key={exercise.id} className="p-3 bg-dark-800 rounded-lg flex justify-between items-center">
+                                            <div className="flex items-center gap-4">
+                                                <span className="text-brand-primary font-bold w-6">{index + 1}.</span>
+                                                <div>
+                                                    <p className="font-semibold text-white">{exercise.name}</p>
+                                                    <p className="text-sm text-gray-400">
+                                                        {exercise.sets} sets × {exercise.reps} reps • Rest: {exercise.rest}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => handleRemoveExercise(day.id, exercise.id)}
+                                                className="text-red-400 hover:text-red-300 text-sm"
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-gray-400 text-center py-4">No exercises added yet</p>
+                            )}
+                        </Card>
+                    ))}
+                </div>
+            ) : (
+                <Card className="text-center py-12">
+                    <p className="text-gray-400 mb-4">No workout days created yet</p>
+                    <Button onClick={() => setShowAddDayModal(true)}>Create First Workout Day</Button>
+                </Card>
+            )}
+
+            {/* Add Day Modal */}
+            {showAddDayModal && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-md">
+                        <h2 className="text-2xl font-bold mb-4 text-white">Add Workout Day</h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-2">Day Name *</label>
+                                <input
+                                    type="text"
+                                    value={newDay}
+                                    onChange={(e) => setNewDay(e.target.value)}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    placeholder="e.g., Monday - Chest & Triceps"
+                                />
+                            </div>
+                        </div>
+                        <div className="mt-6 flex gap-3">
+                            <Button variant="secondary" onClick={() => setShowAddDayModal(false)}>
+                                Cancel
+                            </Button>
+                            <Button onClick={handleAddDay}>Add Day</Button>
+                        </div>
+                    </Card>
+                </div>
+            )}
+
+            {/* Add Exercise Modal */}
+            {showAddExerciseModal && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-md">
+                        <h2 className="text-2xl font-bold mb-4 text-white">Add Exercise</h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-2">Exercise Name *</label>
+                                <input
+                                    type="text"
+                                    value={newExercise.name}
+                                    onChange={(e) => setNewExercise({ ...newExercise, name: e.target.value })}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    placeholder="e.g., Bench Press"
+                                />
+                            </div>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-2">Sets</label>
+                                    <input
+                                        type="number"
+                                        value={newExercise.sets}
+                                        onChange={(e) => setNewExercise({ ...newExercise, sets: parseInt(e.target.value) })}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-2">Reps</label>
+                                    <input
+                                        type="text"
+                                        value={newExercise.reps}
+                                        onChange={(e) => setNewExercise({ ...newExercise, reps: e.target.value })}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                        placeholder="10-12"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-2">Rest</label>
+                                    <input
+                                        type="text"
+                                        value={newExercise.rest}
+                                        onChange={(e) => setNewExercise({ ...newExercise, rest: e.target.value })}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                        placeholder="60s"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mt-6 flex gap-3">
+                            <Button variant="secondary" onClick={() => {
+                                setShowAddExerciseModal(false);
+                                setSelectedDayId(null);
+                            }}>
+                                Cancel
+                            </Button>
+                            <Button onClick={handleAddExercise}>Add Exercise</Button>
+                        </div>
+                    </Card>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ============ LOGS TAB ============
+const LogsTab: React.FC<{
+    clientId: string;
+    logs: Log[];
+    onRefresh: () => void;
+}> = ({ clientId, logs, onRefresh }) => {
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [formData, setFormData] = useState({
+        date: new Date().toISOString().split('T')[0],
+        notes: '',
+        performance_rating: 3,
+    });
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleSubmit = async () => {
+        if (!formData.notes) {
+            alert('Please add some notes');
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            await logService.createLog(clientId, formData);
+            await onRefresh();
+            setShowAddModal(false);
+            setFormData({
+                date: new Date().toISOString().split('T')[0],
+                notes: '',
+                performance_rating: 3,
+            });
+        } catch (error: any) {
+            alert(`Failed to create log: ${error.message}`);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const sortedLogs = [...logs].sort((a, b) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-white">Daily Activity Logs</h2>
+                <Button onClick={() => setShowAddModal(true)}>Add Log</Button>
+            </div>
+
+            <Card>
+                {sortedLogs.length > 0 ? (
+                    <div className="space-y-4">
+                        {sortedLogs.map(log => (
+                            <div key={log.id} className="p-4 bg-dark-800 rounded-lg">
+                                <div className="flex justify-between items-start mb-2">
+                                    <p className="font-semibold text-brand-primary">
+                                        {new Date(log.date).toLocaleDateString('en-US', {
+                                            weekday: 'long',
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                        })}
+                                    </p>
+                                    {log.performance_rating && (
+                                        <div className="flex items-center space-x-1">
+                                            {[...Array(5)].map((_, i) => (
+                                                <span
+                                                    key={i}
+                                                    className={`text-xl ${i < log.performance_rating! ? 'text-yellow-400' : 'text-gray-600'}`}
+                                                >
+                                                    ★
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <p className="text-gray-300">{log.notes}</p>
+                                <p className="text-xs text-gray-500 mt-2">
+                                    Logged on {new Date(log.created_at).toLocaleDateString()}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-gray-400">No activity logs yet. Start tracking daily sessions!</p>
+                )}
+            </Card>
+
+            {/* Add Log Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-lg">
+                        <h2 className="text-2xl font-bold mb-4 text-white">Add Activity Log</h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">Date</label>
+                                <input
+                                    type="date"
+                                    value={formData.date}
+                                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">Performance Rating</label>
+                                <div className="flex items-center space-x-2">
+                                    {[1, 2, 3, 4, 5].map(rating => (
+                                        <button
+                                            key={rating}
+                                            onClick={() => setFormData({...formData, performance_rating: rating})}
+                                            className={`text-3xl ${rating <= formData.performance_rating ? 'text-yellow-400' : 'text-gray-600'} hover:text-yellow-400 transition-colors`}
+                                        >
+                                            ★
+                                        </button>
+                                    ))}
+                                    <span className="ml-2 text-white">{formData.performance_rating}/5</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">Notes *</label>
+                                <textarea
+                                    value={formData.notes}
+                                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    rows={5}
+                                    placeholder="What did you work on today? How did the client perform? Any observations..."
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                            <Button variant="secondary" onClick={() => setShowAddModal(false)} disabled={submitting}>
+                                Cancel
+                            </Button>
+                            <Button onClick={handleSubmit} disabled={submitting}>
+                                {submitting ? 'Adding...' : 'Add Log'}
+                            </Button>
+                        </div>
+                    </Card>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ============ PAYMENTS TAB ============
+const PaymentsTab: React.FC<{
+    clientId: string;
+    payments: Payment[];
+    onRefresh: () => void;
+}> = ({ clientId, payments, onRefresh }) => {
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [formData, setFormData] = useState({
+        amount: '',
+        method: 'cash' as any,
+        description: 'Monthly Membership',
+        due_date: '',
+    });
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleCreatePayment = async () => {
+        if (!formData.amount) {
+            alert('Please enter an amount');
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            await paymentService.createPayment({
+                client: clientId,
+                amount: parseFloat(formData.amount),
+                method: formData.method,
+                description: formData.description || undefined,
+                due_date: formData.due_date || undefined,
+            });
+            await onRefresh();
+            setShowAddModal(false);
+            setFormData({ amount: '', method: 'cash', description: 'Monthly Membership', due_date: '' });
+        } catch (error: any) {
+            alert(`Failed to create payment: ${error.message}`);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleMarkPaid = async (paymentId: string, method: 'cash' | 'mpesa') => {
+        try {
+            await paymentService.updatePayment(paymentId, {
+                status: 'completed',
+                method: method,
+                payment_date: new Date().toISOString()
+            });
+            await onRefresh();
+        } catch (error: any) {
+            alert(`Failed to update payment: ${error.message}`);
+        }
+    };
+
+    const pendingPayments = payments.filter(p => p.status === 'pending');
+    const completedPayments = payments.filter(p => p.status === 'completed');
+    const totalPending = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
+    const totalPaid = completedPayments.reduce((sum, p) => sum + p.amount, 0);
+
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-white">Membership Payments</h2>
+                <Button onClick={() => setShowAddModal(true)}>Add Payment</Button>
+            </div>
+
+            {/* Summary */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Card className="bg-yellow-500/10 border border-yellow-500/20">
+                    <h3 className="text-sm text-yellow-400 mb-1">Pending Payments</h3>
+                    <p className="text-3xl font-bold text-white">KES {totalPending.toLocaleString()}</p>
+                    <p className="text-sm text-gray-400 mt-1">{pendingPayments.length} payment(s)</p>
+                </Card>
+                <Card className="bg-green-500/10 border border-green-500/20">
+                    <h3 className="text-sm text-green-400 mb-1">Total Paid</h3>
+                    <p className="text-3xl font-bold text-white">KES {totalPaid.toLocaleString()}</p>
+                    <p className="text-sm text-gray-400 mt-1">{completedPayments.length} payment(s)</p>
+                </Card>
+            </div>
+
+            {/* Pending Payments */}
+            {pendingPayments.length > 0 && (
+                <Card>
+                    <h3 className="text-xl font-semibold mb-4 text-white">Pending Payments</h3>
+                    <div className="space-y-3">
+                        {pendingPayments.map(payment => (
+                            <div key={payment.id} className="p-4 bg-dark-800 rounded-lg">
+                                <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                        <p className="font-bold text-white text-xl">KES {payment.amount.toLocaleString()}</p>
+                                        {payment.description && (
+                                            <p className="text-gray-400 text-sm">{payment.description}</p>
+                                        )}
+                                        {payment.due_date && (
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Due: {new Date(payment.due_date).toLocaleDateString()}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-500/20 text-yellow-400">
+                                        PENDING
+                                    </span>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button size="sm" onClick={() => handleMarkPaid(payment.id, 'cash')}>
+                                        Mark Paid (Cash)
+                                    </Button>
+                                    <Button size="sm" variant="secondary" onClick={() => handleMarkPaid(payment.id, 'mpesa')}>
+                                        Mark Paid (M-Pesa)
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </Card>
+            )}
+
+            {/* Payment History */}
+            <Card>
+                <h3 className="text-xl font-semibold mb-4 text-white">Payment History</h3>
+                {completedPayments.length > 0 ? (
+                    <div className="space-y-3">
+                        {completedPayments.map(payment => (
+                            <div key={payment.id} className="p-4 bg-dark-800 rounded-lg">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-3">
+                                            <p className="font-bold text-white">KES {payment.amount.toLocaleString()}</p>
+                                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-500/20 text-green-400">
+                                                PAID
+                                            </span>
+                                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-500/20 text-blue-400">
+                                                {payment.method.toUpperCase()}
+                                            </span>
+                                        </div>
+                                        {payment.description && (
+                                            <p className="text-gray-400 text-sm mt-1">{payment.description}</p>
+                                        )}
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Paid on: {new Date(payment.payment_date).toLocaleDateString()}
+                                        </p>
+                                        {payment.transaction_id && (
+                                            <p className="text-xs text-gray-500">
+                                                Transaction ID: {payment.transaction_id}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-gray-400">No payment history yet.</p>
+                )}
+            </Card>
+
+            {/* Add Payment Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-lg">
+                        <h2 className="text-2xl font-bold mb-4 text-white">Add Membership Payment</h2>
+
+                        {/* Quick Select for Common Payments */}
+                        <div className="mb-4">
+                            <label className="block text-sm text-gray-400 mb-2">Quick Select</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button
+                                    onClick={() => setFormData({...formData, amount: '5000', description: 'Monthly Membership'})}
+                                    className="p-2 bg-dark-800 hover:bg-dark-700 text-white rounded-lg border border-dark-700 text-sm"
+                                >
+                                    Monthly (KES 5,000)
+                                </button>
+                                <button
+                                    onClick={() => setFormData({...formData, amount: '3000', description: 'Per Session'})}
+                                    className="p-2 bg-dark-800 hover:bg-dark-700 text-white rounded-lg border border-dark-700 text-sm"
+                                >
+                                    Per Session (KES 3,000)
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">Amount (KES) *</label>
+                                <input
+                                    type="number"
+                                    value={formData.amount}
+                                    onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    placeholder="5000"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">Payment Method</label>
+                                <select
+                                    value={formData.method}
+                                    onChange={(e) => setFormData({...formData, method: e.target.value as any})}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                >
+                                    <option value="cash">Cash</option>
+                                    <option value="mpesa">M-Pesa</option>
+                                    <option value="bank_transfer">Bank Transfer</option>
+                                    <option value="credit_card">Credit Card</option>
+                                    <option value="debit_card">Debit Card</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">Description</label>
+                                <input
+                                    type="text"
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    placeholder="Monthly membership, Personal training session, etc."
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">Due Date (optional)</label>
+                                <input
+                                    type="date"
+                                    value={formData.due_date}
+                                    onChange={(e) => setFormData({...formData, due_date: e.target.value})}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                            <Button variant="secondary" onClick={() => setShowAddModal(false)} disabled={submitting}>
+                                Cancel
+                            </Button>
+                            <Button onClick={handleCreatePayment} disabled={submitting}>
+                                {submitting ? 'Adding...' : 'Add Payment'}
+                            </Button>
+                        </div>
+                    </Card>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default ClientDetailPage;
