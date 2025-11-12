@@ -60,3 +60,82 @@ class Client(models.Model):
     def full_name(self):
         """Return full name of client"""
         return f"{self.first_name} {self.last_name}"
+
+
+
+
+class Goal(models.Model):
+    """Goal Model - Represents fitness goals for clients"""
+    GOAL_TYPE_CHOICES = (
+        ('weight_loss', 'Weight Loss'),
+        ('muscle_gain', 'Muscle Gain'),
+        ('endurance', 'Endurance'),
+        ('flexibility', 'Flexibility'),
+        ('general_fitness', 'General Fitness'),
+    )
+    goal_type = models.CharField(max_length=20, choices=GOAL_TYPE_CHOICES)
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.CASCADE,
+        related_name='goals'
+    )
+    description = models.TextField()
+    target_date = models.DateField(null=True, blank=True)
+    achieved = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Goal'
+        verbose_name_plural = 'Goals'
+
+    def __str__(self):
+        return f"Goal for {self.client.full_name}: {self.description[:30]}..."
+
+
+class WorkoutPlan(models.Model):
+    """WorkoutPlan Model - Represents workout plans assigned to clients"""
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.CASCADE,
+        related_name='workout_plans'
+    )
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Workout Plan'
+        verbose_name_plural = 'Workout Plans'
+
+    def __str__(self):
+        return f"Workout Plan for {self.client.full_name}: {self.name}"
+
+
+class Exercise(models.Model):
+    """Exercise Model - Represents exercises within a workout plan"""
+    workout_plan = models.ForeignKey(
+        WorkoutPlan,
+        on_delete=models.CASCADE,
+        related_name='exercises'
+    )
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    sets = models.PositiveIntegerField()
+    reps = models.PositiveIntegerField()
+    rest_period_seconds = models.PositiveIntegerField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Exercise'
+        verbose_name_plural = 'Exercises'
+
+    def __str__(self):
+        return f"Exercise in {self.workout_plan.name}: {self.name}"

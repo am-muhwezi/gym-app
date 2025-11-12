@@ -4,9 +4,29 @@
  */
 
 import { apiClient } from './api';
-import type { Payment, PaymentCreatePayload } from '../types';
+import type {
+  Payment,
+  PaymentCreatePayload,
+  PaymentMarkPaidPayload,
+  PaymentMpesaPayload,
+  PaymentReceipt,
+  PaymentStatistics,
+} from '../types';
 
 export const paymentService = {
+  /**
+   * Get all payments (optionally filtered by client, status)
+   */
+  async getPayments(filters?: {
+    client?: string;
+    payment_status?: string;
+    payment_method?: string;
+  }): Promise<Payment[]> {
+    return apiClient.get<Payment[]>('/payments/', {
+      params: filters as any,
+    });
+  },
+
   /**
    * Get all payments for a client
    */
@@ -24,28 +44,92 @@ export const paymentService = {
   },
 
   /**
-   * Create a new payment
+   * Create a new payment/invoice
    */
   async createPayment(data: PaymentCreatePayload): Promise<Payment> {
     return apiClient.post<Payment>('/payments/', data);
   },
 
   /**
-   * Update payment status
+   * Update a payment
    */
-  async updatePaymentStatus(paymentId: string, status: Payment['status']): Promise<Payment> {
-    return apiClient.patch<Payment>(`/payments/${paymentId}/`, { status });
+  async updatePayment(paymentId: string, data: Partial<Payment>): Promise<Payment> {
+    return apiClient.patch<Payment>(`/payments/${paymentId}/`, data);
+  },
+
+  /**
+   * Delete a payment
+   */
+  async deletePayment(paymentId: string): Promise<void> {
+    return apiClient.delete<void>(`/payments/${paymentId}/`);
+  },
+
+  /**
+   * Initiate M-Pesa STK Push
+   */
+  async payWithMpesa(
+    paymentId: string,
+    payload: PaymentMpesaPayload
+  ): Promise<{ message: string; CheckoutRequestID?: string }> {
+    return apiClient.post(`/payments/${paymentId}/pay_mpesa/`, payload);
+  },
+
+  /**
+   * Mark payment as paid manually (cash, bank transfer, etc.)
+   */
+  async markAsPaid(
+    paymentId: string,
+    payload: PaymentMarkPaidPayload
+  ): Promise<Payment> {
+    return apiClient.post<Payment>(`/payments/${paymentId}/mark_paid/`, payload);
+  },
+
+  /**
+   * Get payment receipt
+   */
+  async getReceipt(paymentId: string): Promise<PaymentReceipt> {
+    return apiClient.get<PaymentReceipt>(`/payments/${paymentId}/receipt/`);
+  },
+
+  /**
+   * Get payment statistics
+   */
+  async getStatistics(): Promise<PaymentStatistics> {
+    return apiClient.get<PaymentStatistics>('/payments/statistics/');
+  },
+
+  /**
+   * Get overdue payments
+   */
+  async getOverduePayments(): Promise<Payment[]> {
+    return apiClient.get<Payment[]>('/payments/overdue/');
+  },
+
+  /**
+   * M-Pesa callback handler (not used directly in frontend)
+   */
+  // Callback is handled automatically by the backend
+
+  // ============ BACKWARD COMPATIBILITY HELPERS ============
+
+  /**
+   * Update payment status
+   * @deprecated Use markAsPaid instead
+   */
+  async updatePaymentStatus(paymentId: string, status: Payment['payment_status']): Promise<Payment> {
+    return apiClient.patch<Payment>(`/payments/${paymentId}/`, { payment_status: status });
   },
 
   /**
    * Mark payment as completed
+   * @deprecated Use markAsPaid instead
    */
   async markPaymentCompleted(
     paymentId: string,
     transactionId?: string
   ): Promise<Payment> {
-    return apiClient.patch<Payment>(`/payments/${paymentId}/`, {
-      status: 'completed',
+    return this.markAsPaid(paymentId, {
+      payment_method: 'cash',
       transaction_id: transactionId,
     });
   },
@@ -62,7 +146,9 @@ export const paymentService = {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const pendingPayments = payments.filter((p) => p.status === 'pending');
+    const pendingPayments = payments.filter(
+      (p) => (p.payment_status || p.status) === 'pending'
+    );
 
     const overduePayments = pendingPayments.filter((p) => {
       if (!p.due_date) return false;
@@ -95,6 +181,7 @@ export const paymentService = {
 
   /**
    * Record M-Pesa payment
+   * @deprecated Use createPayment with payment_method: 'mpesa' and markAsPaid
    */
   async recordMpesaPayment(
     clientId: string,
@@ -102,30 +189,37 @@ export const paymentService = {
     transactionId: string,
     description?: string
   ): Promise<Payment> {
-    return apiClient.post<Payment>('/payments/', {
+    const payment = await apiClient.post<Payment>('/payments/', {
       client: clientId,
       amount,
-      method: 'mpesa',
-      status: 'completed',
-      transaction_id: transactionId,
+      payment_method: 'mpesa',
       description,
+    });
+
+    return this.markAsPaid(payment.id, {
+      payment_method: 'mpesa',
+      transaction_id: transactionId,
     });
   },
 
   /**
    * Record cash payment
+   * @deprecated Use createPayment with payment_method: 'cash' and markAsPaid
    */
   async recordCashPayment(
     clientId: string,
     amount: number,
     description?: string
   ): Promise<Payment> {
-    return apiClient.post<Payment>('/payments/', {
+    const payment = await apiClient.post<Payment>('/payments/', {
       client: clientId,
       amount,
-      method: 'cash',
-      status: 'completed',
+      payment_method: 'cash',
       description,
+    });
+
+    return this.markAsPaid(payment.id, {
+      payment_method: 'cash',
     });
   },
 };

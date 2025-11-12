@@ -147,37 +147,77 @@ export interface Exercise {
 export type PaymentMethod =
   | 'cash'
   | 'mpesa'
+  | 'bank_transfer'
   | 'credit_card'
   | 'debit_card'
-  | 'bank_transfer'
   | 'other';
 
-export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded' | 'cancelled';
+export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
 
 export interface Payment {
   id: string;
   client: string; // Client ID
   trainer: string; // Trainer ID
   amount: number;
-  currency: string;
-  method: PaymentMethod;
-  status: PaymentStatus;
+  payment_method: PaymentMethod;
+  payment_status: PaymentStatus;
+  invoice_number?: string;
+  mpesa_receipt_number?: string;
   transaction_id?: string;
-  payment_date: string;
+  phone_number?: string;
+  payment_date?: string;
   due_date?: string;
   description?: string;
   notes?: string;
   created_at: string;
   updated_at: string;
+
+  // For backward compatibility (will be deprecated)
+  currency?: string;
+  method?: PaymentMethod;
+  status?: PaymentStatus;
 }
 
 export interface PaymentCreatePayload {
   client: string;
   amount: number;
-  method: PaymentMethod;
+  payment_method: PaymentMethod;
+  phone_number?: string;
   due_date?: string;
   description?: string;
   notes?: string;
+}
+
+export interface PaymentMarkPaidPayload {
+  payment_method?: PaymentMethod;
+  transaction_id?: string;
+  notes?: string;
+}
+
+export interface PaymentMpesaPayload {
+  phone_number: string;
+}
+
+export interface PaymentReceipt {
+  invoice_number: string;
+  client_name: string;
+  client_email: string;
+  client_phone: string;
+  trainer_name: string;
+  amount: number;
+  payment_method_display: string;
+  mpesa_receipt_number?: string;
+  description: string;
+  payment_date: string;
+}
+
+export interface PaymentStatistics {
+  total_received: number;
+  pending_amount: number;
+  overdue_amount: number;
+  total_transactions: number;
+  this_month_revenue: number;
+  last_month_revenue: number;
 }
 
 // ============ LOG TYPES ============

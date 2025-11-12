@@ -49,16 +49,21 @@ export const authService = {
     /**
      * Set auth token in API client and localStorage
      */
-    setToken(token: string): void {
-        apiClient.setToken(token);
-        localStorage.setItem('auth_token', token);
+    setToken(token: string | null): void {
+        if (token) {
+            apiClient.setToken(token);
+            localStorage.setItem('auth_token', token);
+        } else {
+            apiClient.clearToken();
+            localStorage.removeItem('auth_token');
+        }
     },
 
     /**
      * Remove auth token from API client and localStorage
      */
     removeToken(): void {
-        apiClient.setToken(null);
+        apiClient.clearToken();
         localStorage.removeItem('auth_token');
     },
 

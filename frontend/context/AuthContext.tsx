@@ -26,16 +26,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Check if user is already logged in on mount
     useEffect(() => {
-        const initAuth = async () => {
+        const initAuth = () => {
             const token = authService.getToken();
-            if (token) {
+            const storedUser = localStorage.getItem('user');
+
+            if (token && storedUser) {
                 try {
                     authService.setToken(token);
-                    const userData = await authService.getCurrentUser();
+                    const userData = JSON.parse(storedUser);
                     setUser(userData);
                 } catch (error) {
-                    console.error('Failed to get current user:', error);
+                    console.error('Failed to restore user session:', error);
                     authService.removeToken();
+                    localStorage.removeItem('user');
                 }
             }
             setLoading(false);
@@ -48,6 +51,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         try {
             const { token, user: userData } = await authService.login(credentials);
             authService.setToken(token);
+            localStorage.setItem('user', JSON.stringify(userData));
             setUser(userData);
         } catch (error) {
             console.error('Login failed:', error);
@@ -62,6 +66,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 user_type: 'trainer',
             });
             authService.setToken(token);
+            localStorage.setItem('user', JSON.stringify(userData));
             setUser(userData);
         } catch (error) {
             console.error('Signup failed:', error);
@@ -76,6 +81,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             console.error('Logout failed:', error);
         } finally {
             authService.removeToken();
+            localStorage.removeItem('user');
             setUser(null);
         }
     };

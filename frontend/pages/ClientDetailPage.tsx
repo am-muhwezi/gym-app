@@ -5,6 +5,9 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { Client, Goal, Payment, Log, ClientProgress, WorkoutRoutine } from '../types';
 import { clientService, goalService, paymentService, logService, progressService } from '../services';
+import EnhancedOverview from '../components/client/EnhancedOverview';
+import GoalsManager from '../components/client/GoalsManager';
+import PaymentManager from '../components/client/PaymentManager';
 
 const BackArrowIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>);
 
@@ -38,8 +41,8 @@ const ClientDetailPage: React.FC = () => {
 
                 // Load related data
                 const [goalsData, paymentsData, logsData, progressData] = await Promise.all([
-                    goalService.getGoalsByClient(clientId).catch(() => []),
-                    paymentService.getPaymentsByClient(clientId).catch(() => []),
+                    goalService.getClientGoals(clientId).catch(() => []),
+                    paymentService.getClientPayments(clientId).catch(() => []),
                     logService.getLogsByClient(clientId).catch(() => []),
                     progressService.getProgressByClient(clientId).catch(() => []),
                 ]);
@@ -60,13 +63,13 @@ const ClientDetailPage: React.FC = () => {
 
     const refreshGoals = async () => {
         if (!clientId) return;
-        const data = await goalService.getGoalsByClient(clientId);
+        const data = await goalService.getClientGoals(clientId);
         setGoals(data);
     };
 
     const refreshPayments = async () => {
         if (!clientId) return;
-        const data = await paymentService.getPaymentsByClient(clientId);
+        const data = await paymentService.getClientPayments(clientId);
         setPayments(data);
     };
 
@@ -163,7 +166,7 @@ const ClientDetailPage: React.FC = () => {
             {/* Tab Content */}
             <div>
                 {activeTab === 'overview' && (
-                    <OverviewTab
+                    <EnhancedOverview
                         client={client}
                         goals={goals}
                         payments={payments}
@@ -179,11 +182,7 @@ const ClientDetailPage: React.FC = () => {
                     />
                 )}
                 {activeTab === 'goals' && (
-                    <GoalsTab
-                        clientId={client.id}
-                        goals={goals}
-                        onRefresh={refreshGoals}
-                    />
+                    <GoalsManager clientId={client.id} />
                 )}
                 {activeTab === 'workouts' && (
                     <WorkoutsTab clientId={client.id} />
@@ -196,11 +195,7 @@ const ClientDetailPage: React.FC = () => {
                     />
                 )}
                 {activeTab === 'payments' && (
-                    <PaymentsTab
-                        clientId={client.id}
-                        payments={payments}
-                        onRefresh={refreshPayments}
-                    />
+                    <PaymentManager clientId={client.id} />
                 )}
             </div>
         </div>
@@ -650,235 +645,6 @@ const BioProgressTab: React.FC<{
     );
 };
 
-// ============ GOALS TAB ============
-const GoalsTab: React.FC<{
-    clientId: string;
-    goals: Goal[];
-    onRefresh: () => void;
-}> = ({ clientId, goals, onRefresh }) => {
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [formData, setFormData] = useState({
-        goal_type: 'weight_loss' as any,
-        title: '',
-        description: '',
-        target_value: '',
-        current_value: '',
-        target_date: '',
-    });
-    const [submitting, setSubmitting] = useState(false);
-
-    const handleSubmit = async () => {
-        if (!formData.title || !formData.description) {
-            alert('Please fill in title and description');
-            return;
-        }
-
-        setSubmitting(true);
-        try {
-            await goalService.createGoal(clientId, formData);
-            await onRefresh();
-            setShowAddModal(false);
-            setFormData({
-                goal_type: 'weight_loss',
-                title: '',
-                description: '',
-                target_value: '',
-                current_value: '',
-                target_date: '',
-            });
-        } catch (error: any) {
-            alert(`Failed to create goal: ${error.message}`);
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    const handleMarkComplete = async (goalId: string) => {
-        try {
-            await goalService.updateGoal(goalId, { status: 'completed' });
-            await onRefresh();
-        } catch (error: any) {
-            alert(`Failed to update goal: ${error.message}`);
-        }
-    };
-
-    const activeGoals = goals.filter(g => g.status === 'active');
-    const completedGoals = goals.filter(g => g.status === 'completed');
-
-    return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-white">Goals</h2>
-                <Button onClick={() => setShowAddModal(true)}>Add Goal</Button>
-            </div>
-
-            {/* Active Goals */}
-            <Card>
-                <h3 className="text-xl font-semibold mb-4 text-white">Active Goals ({activeGoals.length})</h3>
-                {activeGoals.length > 0 ? (
-                    <div className="space-y-4">
-                        {activeGoals.map(goal => (
-                            <div key={goal.id} className="p-4 bg-dark-800 rounded-lg">
-                                <div className="flex justify-between items-start mb-2">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-brand-primary/20 text-brand-primary">
-                                                {goal.goal_type.replace('_', ' ').toUpperCase()}
-                                            </span>
-                                            <h4 className="font-bold text-white">{goal.title}</h4>
-                                        </div>
-                                        <p className="text-gray-300 mt-2">{goal.description}</p>
-                                        {goal.target_value && (
-                                            <div className="mt-3">
-                                                <div className="flex justify-between text-sm mb-1">
-                                                    <span className="text-gray-400">Progress</span>
-                                                    <span className="text-white">
-                                                        {goal.current_value || '0'} / {goal.target_value}
-                                                    </span>
-                                                </div>
-                                                <div className="relative w-full bg-dark-700 rounded-full h-6">
-                                                    <div
-                                                        className="bg-gradient-to-r from-brand-primary to-brand-secondary h-6 rounded-full flex items-center justify-center transition-all duration-300"
-                                                        style={{
-                                                            width: `${Math.min(100, ((parseFloat(goal.current_value || '0') / parseFloat(goal.target_value || '1')) * 100))}%`
-                                                        }}
-                                                    >
-                                                        <span className="text-xs font-bold text-white px-2">
-                                                            {Math.round(Math.min(100, ((parseFloat(goal.current_value || '0') / parseFloat(goal.target_value || '1')) * 100)))}%
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                        {goal.target_date && (
-                                            <p className="text-sm text-gray-400 mt-2">
-                                                Target Date: {new Date(goal.target_date).toLocaleDateString()}
-                                            </p>
-                                        )}
-                                    </div>
-                                    <Button size="sm" onClick={() => handleMarkComplete(goal.id)}>
-                                        Mark Complete
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-gray-400">No active goals. Add one to get started!</p>
-                )}
-            </Card>
-
-            {/* Completed Goals */}
-            {completedGoals.length > 0 && (
-                <Card>
-                    <h3 className="text-xl font-semibold mb-4 text-white">Completed Goals ({completedGoals.length})</h3>
-                    <div className="space-y-3">
-                        {completedGoals.map(goal => (
-                            <div key={goal.id} className="p-3 bg-dark-800 rounded-lg opacity-75">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-green-400">✓</span>
-                                    <h4 className="font-semibold text-white">{goal.title}</h4>
-                                </div>
-                                {goal.completed_at && (
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        Completed on {new Date(goal.completed_at).toLocaleDateString()}
-                                    </p>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </Card>
-            )}
-
-            {/* Add Goal Modal */}
-            {showAddModal && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-                    <Card className="w-full max-w-lg">
-                        <h2 className="text-2xl font-bold mb-4 text-white">Add New Goal</h2>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm text-gray-400 mb-1">Goal Type</label>
-                                <select
-                                    value={formData.goal_type}
-                                    onChange={(e) => setFormData({...formData, goal_type: e.target.value as any})}
-                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
-                                >
-                                    <option value="weight_loss">Weight Loss</option>
-                                    <option value="muscle_gain">Muscle Gain</option>
-                                    <option value="strength">Strength</option>
-                                    <option value="endurance">Endurance</option>
-                                    <option value="flexibility">Flexibility</option>
-                                    <option value="general_fitness">General Fitness</option>
-                                    <option value="rehabilitation">Rehabilitation</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm text-gray-400 mb-1">Title *</label>
-                                <input
-                                    type="text"
-                                    value={formData.title}
-                                    onChange={(e) => setFormData({...formData, title: e.target.value})}
-                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
-                                    placeholder="e.g., Lose 10kg"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm text-gray-400 mb-1">Description *</label>
-                                <textarea
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
-                                    rows={3}
-                                    placeholder="Describe the goal..."
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm text-gray-400 mb-1">Current Value</label>
-                                    <input
-                                        type="text"
-                                        value={formData.current_value}
-                                        onChange={(e) => setFormData({...formData, current_value: e.target.value})}
-                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
-                                        placeholder="e.g., 80kg"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm text-gray-400 mb-1">Target Value</label>
-                                    <input
-                                        type="text"
-                                        value={formData.target_value}
-                                        onChange={(e) => setFormData({...formData, target_value: e.target.value})}
-                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
-                                        placeholder="e.g., 70kg"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm text-gray-400 mb-1">Target Date</label>
-                                <input
-                                    type="date"
-                                    value={formData.target_date}
-                                    onChange={(e) => setFormData({...formData, target_date: e.target.value})}
-                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-                            <Button variant="secondary" onClick={() => setShowAddModal(false)} disabled={submitting}>
-                                Cancel
-                            </Button>
-                            <Button onClick={handleSubmit} disabled={submitting}>
-                                {submitting ? 'Adding...' : 'Add Goal'}
-                            </Button>
-                        </div>
-                    </Card>
-                </div>
-            )}
-        </div>
-    );
-};
 
 // ============ WORKOUTS TAB ============
 const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {

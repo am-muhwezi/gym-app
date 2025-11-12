@@ -74,11 +74,16 @@ class ClientViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Create client with authenticated trainer
+        # Use service to set default membership dates (business logic)
+        client_data = ClientService.set_default_membership_dates(
+            serializer.validated_data.copy()
+        )
+
+        # Create client directly in view (CRUD operation)
         try:
             client = Client.objects.create(
                 trainer=request.user,
-                **serializer.validated_data
+                **client_data
             )
         except Exception as e:
             return Response(
@@ -118,13 +123,12 @@ class ClientViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(client, data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Delegate to service
-        updated_client = ClientService.update_client(
-            client,
-            **serializer.validated_data
-        )
+        # Update client directly (CRUD operation)
+        for field, value in serializer.validated_data.items():
+            setattr(client, field, value)
+        client.save()
 
-        return Response(ClientSerializer(updated_client).data)
+        return Response(ClientSerializer(client).data)
 
     def partial_update(self, request, pk=None):
         """Partial update of client"""
@@ -139,13 +143,12 @@ class ClientViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(client, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
 
-        # Delegate to service
-        updated_client = ClientService.update_client(
-            client,
-            **serializer.validated_data
-        )
+        # Update client directly (CRUD operation)
+        for field, value in serializer.validated_data.items():
+            setattr(client, field, value)
+        client.save()
 
-        return Response(ClientSerializer(updated_client).data)
+        return Response(ClientSerializer(client).data)
 
     def destroy(self, request, pk=None):
         """Delete client"""
@@ -196,3 +199,118 @@ class ClientViewSet(viewsets.ModelViewSet):
         """
         stats = ClientService.get_client_statistics(request.user)
         return Response(stats)
+
+    @action(detail=True, methods=['get'])
+    def payments(self, request, pk=None):
+        """
+        Get client's payment history
+
+        GET /api/clients/{id}/payments/
+        """
+        try:
+            client = self.get_queryset().get(pk=pk)
+        except Client.DoesNotExist:
+            return Response(
+                {'error': 'Client not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        from payments.models import Payment
+        from payments.serializers import PaymentListSerializer
+
+        payments = Payment.objects.filter(client=client).order_by('-created_at')
+        serializer = PaymentListSerializer(payments, many=True)
+
+        return Response({
+            'client': client.full_name,
+            'payments': serializer.data
+        })
+
+    @action(detail=True, methods=['get', 'post'])
+    def goals(self, request, pk=None):
+        """
+        Get or create client goals
+
+        GET /api/clients/{id}/goals/  - Get all goals for client
+        POST /api/clients/{id}/goals/ - Create new goal for client
+        Body: {
+            "goal_type": "weight_loss",
+            "description": "Lose 10kg in 3 months",
+            "target_date": "2025-03-01"
+        }
+        """
+        try:
+            client = self.get_queryset().get(pk=pk)
+        except Client.DoesNotExist:
+            return Response(
+                {'error': 'Client not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        from .models import Goal
+        from .serializers import GoalSerializer, GoalCreateSerializer
+
+        if request.method == 'GET':
+            goals = client.goals.all().order_by('-created_at')
+            serializer = GoalSerializer(goals, many=True)
+            return Response(serializer.data)
+
+        elif request.method == 'POST':
+            serializer = GoalCreateSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+
+            goal = Goal.objects.create(
+                client=client,
+                **serializer.validated_data
+            )
+
+            return Response(
+                GoalSerializer(goal).data,
+                status=status.HTTP_201_CREATED
+            )
+
+    @action(detail=True, methods=['patch'])
+    def update_goal(self, request, pk=None):
+        """
+        Update a specific goal
+
+        PATCH /api/clients/{id}/update_goal/
+        Body: {
+            "goal_id": 1,
+            "achieved": true
+        }
+        """
+        try:
+            client = self.get_queryset().get(pk=pk)
+        except Client.DoesNotExist:
+            return Response(
+                {'error': 'Client not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        goal_id = request.data.get('goal_id')
+        if not goal_id:
+            return Response(
+                {'error': 'goal_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        from .models import Goal
+
+        try:
+            goal = client.goals.get(id=goal_id)
+        except Goal.DoesNotExist:
+            return Response(
+                {'error': 'Goal not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Update goal fields
+        for field in ['goal_type', 'description', 'target_date', 'achieved']:
+            if field in request.data:
+                setattr(goal, field, request.data[field])
+
+        goal.save()
+
+        from .serializers import GoalSerializer
+        return Response(GoalSerializer(goal).data)

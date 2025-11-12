@@ -53,10 +53,12 @@ REST_FRAMEWORK = {
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Vite dev server
+    "http://localhost:3000",  # Vite dev server (standard port)
+    "http://localhost:5173",  # Vite dev server (alternate port)
+    "http://127.0.0.1:3000",
     "http://127.0.0.1:5173",
-    "http://192.168.100.40:5173",  # Local network access
-    "http://192.168.100.40:3000",  # If frontend runs on port 3000
+    "http://192.168.100.40:3000",  # Local network access
+    "http://192.168.100.40:5173",
 ]
 
 CORS_ALLOW_CREDENTIALS = True

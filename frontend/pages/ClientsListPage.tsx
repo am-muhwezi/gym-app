@@ -46,6 +46,8 @@ const ClientsListPage: React.FC = () => {
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
+    const [gender, setGender] = useState('');
+    const [dob, setDob] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
     const handleAddClient = async () => {
@@ -61,6 +63,8 @@ const ClientsListPage: React.FC = () => {
                 last_name: lastName,
                 email: email,
                 phone: phone,
+                gender: gender || undefined,
+                dob: dob || undefined,
             });
 
             // Refresh the client list
@@ -72,6 +76,8 @@ const ClientsListPage: React.FC = () => {
             setLastName('');
             setEmail('');
             setPhone('');
+            setGender('');
+            setDob('');
         } catch (error: any) {
             console.error('Error creating client:', error);
             alert(`Failed to create client: ${error.message || 'Unknown error'}`);
@@ -149,6 +155,23 @@ const ClientsListPage: React.FC = () => {
                                 className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700 focus:outline-none focus:ring-2 focus:ring-brand-primary placeholder-gray-500"
                                 required
                             />
+                            <select
+                                value={gender}
+                                onChange={(e) => setGender(e.target.value)}
+                                className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                            >
+                                <option value="">Select Gender (Optional)</option>
+                                <option value="M">Male</option>
+                                <option value="F">Female</option>
+                                <option value="O">Other</option>
+                            </select>
+                            <input
+                                type="date"
+                                placeholder="Date of Birth (Optional)"
+                                value={dob}
+                                onChange={(e) => setDob(e.target.value)}
+                                className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                            />
                         </div>
                         <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 sm:space-x-4">
                             <Button
@@ -159,6 +182,8 @@ const ClientsListPage: React.FC = () => {
                                     setLastName('');
                                     setEmail('');
                                     setPhone('');
+                                    setGender('');
+                                    setDob('');
                                 }}
                                 disabled={submitting}
                                 className="w-full sm:w-auto"

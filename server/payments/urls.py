@@ -1,6 +1,12 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from . import views
 
+# Create router and register viewsets
+router = DefaultRouter()
+router.register(r'', views.PaymentViewSet, basename='payment')
+
 urlpatterns = [
-    path('', views.HelloPaymentView.as_view(), name='hello-payments'),
+    path('mpesa-callback/', views.mpesa_callback, name='mpesa-callback'),
+    path('', include(router.urls)),
 ]
