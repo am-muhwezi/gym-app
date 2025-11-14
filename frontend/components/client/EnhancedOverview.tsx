@@ -48,8 +48,8 @@ const EnhancedOverview: React.FC<EnhancedOverviewProps> = ({
     (p) => (p.payment_status || p.status) === 'completed'
   );
 
-  const totalPaid = completedPayments.reduce((sum, p) => sum + p.amount, 0);
-  const totalPending = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
+  const totalPaid = completedPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  const totalPending = pendingPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
   const getGenderDisplay = (gender?: string) => {
     if (!gender) return 'Not specified';
@@ -85,13 +85,13 @@ const EnhancedOverview: React.FC<EnhancedOverviewProps> = ({
         />
         <StatCard
           title="Total Paid"
-          value={`KES ${totalPaid.toLocaleString()}`}
+          value={`KES ${totalPaid.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
           subtitle={completedPayments.length + ' payments'}
           icon="✅"
         />
         <StatCard
           title="Pending Payments"
-          value={`KES ${totalPending.toLocaleString()}`}
+          value={`KES ${totalPending.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
           subtitle={pendingPayments.length + ' invoices'}
           icon="⏳"
         />
@@ -265,10 +265,40 @@ const EnhancedOverview: React.FC<EnhancedOverviewProps> = ({
         {activeGoals.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {activeGoals.map((goal) => {
-              const progress =
-                goal.current_value && goal.target_value
-                  ? (parseFloat(goal.current_value) / parseFloat(goal.target_value)) * 100
-                  : 0;
+              // Calculate progress based on goal type
+              let progress = 0;
+              let current = parseFloat(goal.current_value || '0');
+              let target = parseFloat(goal.target_value || '0');
+              let displayProgress = '';
+
+              if (current && target) {
+                // For weight loss goals, calculate inversely (going DOWN is progress)
+                if (goal.goal_type === 'weight_loss') {
+                  // When target < current (e.g., target=70, current=100)
+                  // This means they need to LOSE weight
+                  if (target >= current) {
+                    // Already at or below target
+                    progress = 100;
+                    displayProgress = `${(current - target).toFixed(1)}kg below target!`;
+                  } else {
+                    // Still working towards target
+                    // Distance to go: current - target (e.g., 100 - 70 = 30kg to lose)
+                    const remaining = current - target;
+                    displayProgress = `${remaining.toFixed(1)}kg to lose`;
+                    progress = 0; // Just started or haven't made progress yet
+                  }
+                } else {
+                  // For gain goals (muscle_gain, strength, endurance, etc.), higher is better
+                  if (current >= target) {
+                    progress = 100;
+                    displayProgress = 'Target achieved!';
+                  } else {
+                    progress = (current / target) * 100;
+                    const remaining = target - current;
+                    displayProgress = `${remaining.toFixed(1)} to go`;
+                  }
+                }
+              }
 
               return (
                 <div key={goal.id} className="p-4 bg-dark-800 rounded-lg space-y-3">
@@ -297,10 +327,14 @@ const EnhancedOverview: React.FC<EnhancedOverviewProps> = ({
                         <span className="text-gray-400">Target: {goal.target_value}</span>
                       </div>
                       <ProgressBar
-                        current={parseFloat(goal.current_value || '0')}
-                        target={parseFloat(goal.target_value)}
-                        color={progress >= 100 ? 'success' : progress >= 75 ? 'warning' : 'primary'}
+                        current={progress}
+                        target={100}
+                        color={progress >= 100 ? 'success' : progress >= 50 ? 'warning' : 'primary'}
                       />
+                      <div className="flex justify-between text-xs mt-1">
+                        <span className="text-gray-500">{displayProgress}</span>
+                        <span className="text-gray-500">{Math.min(progress, 100).toFixed(0)}%</span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -326,13 +360,13 @@ const EnhancedOverview: React.FC<EnhancedOverviewProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
                 <p className="text-sm text-green-400">Total Paid</p>
-                <p className="text-2xl font-bold text-white">KES {totalPaid.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-white">KES {totalPaid.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                 <p className="text-xs text-gray-500 mt-1">{completedPayments.length} payments</p>
               </div>
               <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
                 <p className="text-sm text-yellow-400">Pending</p>
                 <p className="text-2xl font-bold text-white">
-                  KES {totalPending.toLocaleString()}
+                  KES {totalPending.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">{pendingPayments.length} invoices</p>
               </div>

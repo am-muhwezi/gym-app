@@ -4,7 +4,8 @@ import { useClients } from '../context/ClientContext';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { Client, Goal, Payment, Log, ClientProgress, WorkoutRoutine } from '../types';
-import { clientService, goalService, paymentService, logService, progressService } from '../services';
+import { clientService, goalService, paymentService, logService, progressService, workoutService, exportService } from '../services';
+import type { WorkoutPlan as WorkoutPlanType, Exercise as ExerciseType } from '../services/workoutService';
 import EnhancedOverview from '../components/client/EnhancedOverview';
 import GoalsManager from '../components/client/GoalsManager';
 import PaymentManager from '../components/client/PaymentManager';
@@ -20,7 +21,9 @@ const ClientDetailPage: React.FC = () => {
     const [payments, setPayments] = useState<Payment[]>([]);
     const [logs, setLogs] = useState<Log[]>([]);
     const [progress, setProgress] = useState<ClientProgress[]>([]);
+    const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlanType[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showExportMenu, setShowExportMenu] = useState(false);
 
     // Load client data
     useEffect(() => {
@@ -40,17 +43,19 @@ const ClientDetailPage: React.FC = () => {
                 }
 
                 // Load related data
-                const [goalsData, paymentsData, logsData, progressData] = await Promise.all([
+                const [goalsData, paymentsData, logsData, progressData, workoutsData] = await Promise.all([
                     goalService.getClientGoals(clientId).catch(() => []),
                     paymentService.getClientPayments(clientId).catch(() => []),
-                    logService.getLogsByClient(clientId).catch(() => []),
-                    progressService.getProgressByClient(clientId).catch(() => []),
+                    logService.getClientLogs(clientId).catch(() => []),
+                    progressService.getClientProgress(clientId).catch(() => []),
+                    workoutService.getClientWorkouts(clientId).catch(() => []),
                 ]);
 
                 setGoals(goalsData);
                 setPayments(paymentsData);
                 setLogs(logsData);
                 setProgress(progressData);
+                setWorkoutPlans(workoutsData);
             } catch (error) {
                 console.error('Error loading client data:', error);
             } finally {
@@ -75,13 +80,13 @@ const ClientDetailPage: React.FC = () => {
 
     const refreshLogs = async () => {
         if (!clientId) return;
-        const data = await logService.getLogsByClient(clientId);
+        const data = await logService.getClientLogs(clientId);
         setLogs(data);
     };
 
     const refreshProgress = async () => {
         if (!clientId) return;
-        const data = await progressService.getProgressByClient(clientId);
+        const data = await progressService.getClientProgress(clientId);
         setProgress(data);
     };
 
@@ -142,6 +147,109 @@ const ClientDetailPage: React.FC = () => {
                                 {client.status.toUpperCase()}
                             </span>
                         </div>
+                    </div>
+                    {/* Export Menu */}
+                    <div className="relative">
+                        <Button onClick={() => setShowExportMenu(!showExportMenu)}>
+                            Export Data
+                        </Button>
+                        {showExportMenu && (
+                            <div className="absolute right-0 mt-2 w-56 bg-dark-800 border border-dark-700 rounded-lg shadow-lg z-50">
+                                <div className="py-2">
+                                    <button
+                                        onClick={() => {
+                                            exportService.exportProfile(client, 'json');
+                                            setShowExportMenu(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
+                                    >
+                                        Profile (JSON)
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            exportService.exportGoals(client, goals, 'json');
+                                            setShowExportMenu(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
+                                    >
+                                        Goals (JSON)
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            exportService.exportGoals(client, goals, 'csv');
+                                            setShowExportMenu(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
+                                    >
+                                        Goals (CSV)
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            exportService.exportPayments(client, payments, 'json');
+                                            setShowExportMenu(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
+                                    >
+                                        Payments (JSON)
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            exportService.exportPayments(client, payments, 'csv');
+                                            setShowExportMenu(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
+                                    >
+                                        Payments (CSV)
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            exportService.exportWorkouts(client, workoutPlans, 'json');
+                                            setShowExportMenu(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
+                                    >
+                                        Workouts (JSON)
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            exportService.exportWorkouts(client, workoutPlans, 'csv');
+                                            setShowExportMenu(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
+                                    >
+                                        Workouts (CSV)
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            exportService.exportProgress(client, progress, 'json');
+                                            setShowExportMenu(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
+                                    >
+                                        Progress (JSON)
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            exportService.exportLogs(client, logs, 'json');
+                                            setShowExportMenu(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
+                                    >
+                                        Daily Logs (JSON)
+                                    </button>
+                                    <div className="border-t border-dark-700 my-1"></div>
+                                    <button
+                                        onClick={() => {
+                                            exportService.exportAll(client, goals, payments, progress, workoutPlans, logs);
+                                            setShowExportMenu(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 hover:bg-dark-700 text-brand-primary font-semibold text-sm"
+                                    >
+                                        Export All Data (JSON)
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </Card>
@@ -648,107 +756,118 @@ const BioProgressTab: React.FC<{
 
 // ============ WORKOUTS TAB ============
 const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
-    const [workoutDays, setWorkoutDays] = useState<Array<{
-        id: string;
-        day: string;
-        exercises: Array<{
-            id: string;
-            name: string;
-            sets: number;
-            reps: string;
-            rest: string;
-        }>;
-    }>>([]);
-    const [showAddDayModal, setShowAddDayModal] = useState(false);
+    const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlanType[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [showAddPlanModal, setShowAddPlanModal] = useState(false);
     const [showAddExerciseModal, setShowAddExerciseModal] = useState(false);
-    const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
-    const [newDay, setNewDay] = useState('');
+    const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+    const [newPlan, setNewPlan] = useState({ name: '', description: '' });
     const [newExercise, setNewExercise] = useState({
         name: '',
+        description: '',
         sets: 3,
-        reps: '10-12',
-        rest: '60s',
+        reps: 10,
+        rest_period_seconds: 60,
     });
 
-    const handleAddDay = () => {
-        if (!newDay.trim()) {
-            alert('Please enter a day name');
+    useEffect(() => {
+        loadWorkoutPlans();
+    }, [clientId]);
+
+    const loadWorkoutPlans = async () => {
+        try {
+            setLoading(true);
+            const plans = await workoutService.getClientWorkouts(clientId);
+            setWorkoutPlans(plans);
+        } catch (error) {
+            console.error('Error loading workout plans:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddPlan = async () => {
+        if (!newPlan.name.trim()) {
+            alert('Please enter a workout plan name');
             return;
         }
 
-        setWorkoutDays([
-            ...workoutDays,
-            {
-                id: Date.now().toString(),
-                day: newDay,
-                exercises: [],
-            },
-        ]);
-        setNewDay('');
-        setShowAddDayModal(false);
+        try {
+            await workoutService.createWorkoutPlan(clientId, newPlan);
+            setNewPlan({ name: '', description: '' });
+            setShowAddPlanModal(false);
+            await loadWorkoutPlans();
+        } catch (error: any) {
+            alert(`Failed to create workout plan: ${error.message}`);
+        }
     };
 
-    const handleAddExercise = () => {
-        if (!selectedDayId || !newExercise.name.trim()) {
+    const handleAddExercise = async () => {
+        if (!selectedPlanId || !newExercise.name.trim()) {
             alert('Please enter exercise name');
             return;
         }
 
-        setWorkoutDays(workoutDays.map(day => {
-            if (day.id === selectedDayId) {
-                return {
-                    ...day,
-                    exercises: [
-                        ...day.exercises,
-                        {
-                            id: Date.now().toString(),
-                            ...newExercise,
-                        },
-                    ],
-                };
-            }
-            return day;
-        }));
-
-        setNewExercise({ name: '', sets: 3, reps: '10-12', rest: '60s' });
-        setShowAddExerciseModal(false);
-        setSelectedDayId(null);
+        try {
+            await workoutService.addExercise(clientId, selectedPlanId, newExercise);
+            setNewExercise({ name: '', description: '', sets: 3, reps: 10, rest_period_seconds: 60 });
+            setShowAddExerciseModal(false);
+            setSelectedPlanId(null);
+            await loadWorkoutPlans();
+        } catch (error: any) {
+            alert(`Failed to add exercise: ${error.message}`);
+        }
     };
 
-    const handleRemoveExercise = (dayId: string, exerciseId: string) => {
-        setWorkoutDays(workoutDays.map(day => {
-            if (day.id === dayId) {
-                return {
-                    ...day,
-                    exercises: day.exercises.filter(ex => ex.id !== exerciseId),
-                };
-            }
-            return day;
-        }));
+    const handleRemoveExercise = async (planId: string, exerciseId: string) => {
+        if (!confirm('Are you sure you want to remove this exercise?')) return;
+
+        try {
+            await workoutService.deleteExercise(clientId, planId, exerciseId);
+            await loadWorkoutPlans();
+        } catch (error: any) {
+            alert(`Failed to delete exercise: ${error.message}`);
+        }
     };
 
-    const handleRemoveDay = (dayId: string) => {
-        setWorkoutDays(workoutDays.filter(day => day.id !== dayId));
+    const handleRemovePlan = async (planId: string) => {
+        if (!confirm('Are you sure you want to delete this workout plan?')) return;
+
+        try {
+            await workoutService.deleteWorkoutPlan(clientId, planId);
+            await loadWorkoutPlans();
+        } catch (error: any) {
+            alert(`Failed to delete workout plan: ${error.message}`);
+        }
     };
+
+    if (loading) {
+        return <p className="text-gray-400">Loading workout plans...</p>;
+    }
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-white">Workout Program</h2>
-                <Button onClick={() => setShowAddDayModal(true)}>Add Workout Day</Button>
+                <Button onClick={() => setShowAddPlanModal(true)}>Add Workout Plan</Button>
             </div>
 
-            {workoutDays.length > 0 ? (
+            {workoutPlans.length > 0 ? (
                 <div className="space-y-4">
-                    {workoutDays.map(day => (
-                        <Card key={day.id}>
+                    {workoutPlans.map(plan => (
+                        <Card key={plan.id}>
                             <div className="flex justify-between items-start mb-4">
-                                <h3 className="text-xl font-semibold text-white">{day.day}</h3>
+                                <div>
+                                    <h3 className="text-xl font-semibold text-white">{plan.name}</h3>
+                                    {plan.description && (
+                                        <p className="text-sm text-gray-400 mt-1">{plan.description}</p>
+                                    )}
+                                </div>
                                 <div className="flex gap-2">
                                     <Button
                                         size="sm"
                                         onClick={() => {
-                                            setSelectedDayId(day.id);
+                                            setSelectedPlanId(plan.id);
                                             setShowAddExerciseModal(true);
                                         }}
                                     >
@@ -757,28 +876,31 @@ const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
                                     <Button
                                         size="sm"
                                         variant="secondary"
-                                        onClick={() => handleRemoveDay(day.id)}
+                                        onClick={() => handleRemovePlan(plan.id)}
                                     >
-                                        Remove Day
+                                        Remove Plan
                                     </Button>
                                 </div>
                             </div>
 
-                            {day.exercises.length > 0 ? (
+                            {plan.exercises.length > 0 ? (
                                 <div className="space-y-2">
-                                    {day.exercises.map((exercise, index) => (
+                                    {plan.exercises.map((exercise, index) => (
                                         <div key={exercise.id} className="p-3 bg-dark-800 rounded-lg flex justify-between items-center">
                                             <div className="flex items-center gap-4">
                                                 <span className="text-brand-primary font-bold w-6">{index + 1}.</span>
                                                 <div>
                                                     <p className="font-semibold text-white">{exercise.name}</p>
                                                     <p className="text-sm text-gray-400">
-                                                        {exercise.sets} sets × {exercise.reps} reps • Rest: {exercise.rest}
+                                                        {exercise.sets} sets × {exercise.reps} reps • Rest: {exercise.rest_period_seconds}s
                                                     </p>
+                                                    {exercise.description && (
+                                                        <p className="text-xs text-gray-500 mt-1">{exercise.description}</p>
+                                                    )}
                                                 </div>
                                             </div>
                                             <button
-                                                onClick={() => handleRemoveExercise(day.id, exercise.id)}
+                                                onClick={() => handleRemoveExercise(plan.id, exercise.id)}
                                                 className="text-red-400 hover:text-red-300 text-sm"
                                             >
                                                 Remove
@@ -794,33 +916,43 @@ const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
                 </div>
             ) : (
                 <Card className="text-center py-12">
-                    <p className="text-gray-400 mb-4">No workout days created yet</p>
-                    <Button onClick={() => setShowAddDayModal(true)}>Create First Workout Day</Button>
+                    <p className="text-gray-400 mb-4">No workout plans created yet</p>
+                    <Button onClick={() => setShowAddPlanModal(true)}>Create First Workout Plan</Button>
                 </Card>
             )}
 
-            {/* Add Day Modal */}
-            {showAddDayModal && (
+            {/* Add Plan Modal */}
+            {showAddPlanModal && (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
                     <Card className="w-full max-w-md">
-                        <h2 className="text-2xl font-bold mb-4 text-white">Add Workout Day</h2>
+                        <h2 className="text-2xl font-bold mb-4 text-white">Add Workout Plan</h2>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm text-gray-400 mb-2">Day Name *</label>
+                                <label className="block text-sm text-gray-400 mb-2">Plan Name *</label>
                                 <input
                                     type="text"
-                                    value={newDay}
-                                    onChange={(e) => setNewDay(e.target.value)}
+                                    value={newPlan.name}
+                                    onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })}
                                     className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
                                     placeholder="e.g., Monday - Chest & Triceps"
                                 />
                             </div>
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-2">Description</label>
+                                <textarea
+                                    value={newPlan.description}
+                                    onChange={(e) => setNewPlan({ ...newPlan, description: e.target.value })}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    placeholder="Focus on compound movements..."
+                                    rows={3}
+                                />
+                            </div>
                         </div>
                         <div className="mt-6 flex gap-3">
-                            <Button variant="secondary" onClick={() => setShowAddDayModal(false)}>
+                            <Button variant="secondary" onClick={() => setShowAddPlanModal(false)}>
                                 Cancel
                             </Button>
-                            <Button onClick={handleAddDay}>Add Day</Button>
+                            <Button onClick={handleAddPlan}>Add Plan</Button>
                         </div>
                     </Card>
                 </div>
@@ -842,34 +974,44 @@ const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
                                     placeholder="e.g., Bench Press"
                                 />
                             </div>
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-2">Description</label>
+                                <textarea
+                                    value={newExercise.description}
+                                    onChange={(e) => setNewExercise({ ...newExercise, description: e.target.value })}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    placeholder="Barbell flat bench press..."
+                                    rows={2}
+                                />
+                            </div>
                             <div className="grid grid-cols-3 gap-4">
                                 <div>
                                     <label className="block text-sm text-gray-400 mb-2">Sets</label>
                                     <input
                                         type="number"
                                         value={newExercise.sets}
-                                        onChange={(e) => setNewExercise({ ...newExercise, sets: parseInt(e.target.value) })}
+                                        onChange={(e) => setNewExercise({ ...newExercise, sets: parseInt(e.target.value) || 0 })}
                                         className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-sm text-gray-400 mb-2">Reps</label>
                                     <input
-                                        type="text"
+                                        type="number"
                                         value={newExercise.reps}
-                                        onChange={(e) => setNewExercise({ ...newExercise, reps: e.target.value })}
+                                        onChange={(e) => setNewExercise({ ...newExercise, reps: parseInt(e.target.value) || 0 })}
                                         className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
-                                        placeholder="10-12"
+                                        placeholder="10"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-gray-400 mb-2">Rest</label>
+                                    <label className="block text-sm text-gray-400 mb-2">Rest (s)</label>
                                     <input
-                                        type="text"
-                                        value={newExercise.rest}
-                                        onChange={(e) => setNewExercise({ ...newExercise, rest: e.target.value })}
+                                        type="number"
+                                        value={newExercise.rest_period_seconds}
+                                        onChange={(e) => setNewExercise({ ...newExercise, rest_period_seconds: parseInt(e.target.value) || 0 })}
                                         className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
-                                        placeholder="60s"
+                                        placeholder="60"
                                     />
                                 </div>
                             </div>
@@ -877,7 +1019,7 @@ const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
                         <div className="mt-6 flex gap-3">
                             <Button variant="secondary" onClick={() => {
                                 setShowAddExerciseModal(false);
-                                setSelectedDayId(null);
+                                setSelectedPlanId(null);
                             }}>
                                 Cancel
                             </Button>

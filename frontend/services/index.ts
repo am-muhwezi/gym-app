@@ -10,3 +10,6 @@ export { goalService } from './goalService';
 export { progressService } from './progressService';
 export { paymentService } from './paymentService';
 export { logService } from './logService';
+export { workoutService } from './workoutService';
+export { exportService } from './exportService';
+export { generatePaymentReceipt, printReceipt } from './receiptService';

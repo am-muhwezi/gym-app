@@ -306,7 +306,11 @@ class ClientViewSet(viewsets.ModelViewSet):
             )
 
         # Update goal fields
-        for field in ['goal_type', 'description', 'target_date', 'achieved']:
+        allowed_fields = [
+            'goal_type', 'title', 'description', 'target_value',
+            'current_value', 'target_date', 'status', 'achieved'
+        ]
+        for field in allowed_fields:
             if field in request.data:
                 setattr(goal, field, request.data[field])
 
@@ -314,3 +318,151 @@ class ClientViewSet(viewsets.ModelViewSet):
 
         from .serializers import GoalSerializer
         return Response(GoalSerializer(goal).data)
+
+    @action(detail=True, methods=['get', 'post'])
+    def workouts(self, request, pk=None):
+        """
+        Get or create workout plans for client
+
+        GET /api/clients/{id}/workouts/ - Get all workout plans for client
+        POST /api/clients/{id}/workouts/ - Create new workout plan for client
+        Body: {
+            "name": "Monday - Chest & Triceps",
+            "description": "Focus on compound movements"
+        }
+        """
+        try:
+            client = self.get_queryset().get(pk=pk)
+        except Client.DoesNotExist:
+            return Response(
+                {'error': 'Client not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        from .models import WorkoutPlan
+        from .serializers import WorkoutPlanSerializer, WorkoutPlanCreateSerializer
+
+        if request.method == 'GET':
+            plans = client.workout_plans.all().prefetch_related('exercises').order_by('-created_at')
+            serializer = WorkoutPlanSerializer(plans, many=True)
+            return Response(serializer.data)
+
+        elif request.method == 'POST':
+            serializer = WorkoutPlanCreateSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+
+            plan = WorkoutPlan.objects.create(
+                client=client,
+                **serializer.validated_data
+            )
+
+            return Response(
+                WorkoutPlanSerializer(plan).data,
+                status=status.HTTP_201_CREATED
+            )
+
+    @action(detail=True, methods=['post'], url_path='workouts/(?P<plan_id>[^/.]+)/exercises')
+    def add_exercise(self, request, pk=None, plan_id=None):
+        """
+        Add exercise to a workout plan
+
+        POST /api/clients/{id}/workouts/{plan_id}/exercises/
+        Body: {
+            "name": "Bench Press",
+            "description": "Barbell flat bench press",
+            "sets": 3,
+            "reps": 10,
+            "rest_period_seconds": 90
+        }
+        """
+        try:
+            client = self.get_queryset().get(pk=pk)
+        except Client.DoesNotExist:
+            return Response(
+                {'error': 'Client not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        from .models import WorkoutPlan, Exercise
+        from .serializers import ExerciseSerializer, ExerciseCreateSerializer
+
+        try:
+            plan = client.workout_plans.get(id=plan_id)
+        except WorkoutPlan.DoesNotExist:
+            return Response(
+                {'error': 'Workout plan not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = ExerciseCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        exercise = Exercise.objects.create(
+            workout_plan=plan,
+            **serializer.validated_data
+        )
+
+        return Response(
+            ExerciseSerializer(exercise).data,
+            status=status.HTTP_201_CREATED
+        )
+
+    @action(detail=True, methods=['delete'], url_path='workouts/(?P<plan_id>[^/.]+)')
+    def delete_workout(self, request, pk=None, plan_id=None):
+        """
+        Delete a workout plan
+
+        DELETE /api/clients/{id}/workouts/{plan_id}/
+        """
+        try:
+            client = self.get_queryset().get(pk=pk)
+        except Client.DoesNotExist:
+            return Response(
+                {'error': 'Client not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        from .models import WorkoutPlan
+
+        try:
+            plan = client.workout_plans.get(id=plan_id)
+            plan.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except WorkoutPlan.DoesNotExist:
+            return Response(
+                {'error': 'Workout plan not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    @action(detail=True, methods=['delete'], url_path='workouts/(?P<plan_id>[^/.]+)/exercises/(?P<exercise_id>[^/.]+)')
+    def delete_exercise(self, request, pk=None, plan_id=None, exercise_id=None):
+        """
+        Delete an exercise from a workout plan
+
+        DELETE /api/clients/{id}/workouts/{plan_id}/exercises/{exercise_id}/
+        """
+        try:
+            client = self.get_queryset().get(pk=pk)
+        except Client.DoesNotExist:
+            return Response(
+                {'error': 'Client not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        from .models import WorkoutPlan, Exercise
+
+        try:
+            plan = client.workout_plans.get(id=plan_id)
+            exercise = plan.exercises.get(id=exercise_id)
+            exercise.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except WorkoutPlan.DoesNotExist:
+            return Response(
+                {'error': 'Workout plan not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exercise.DoesNotExist:
+            return Response(
+                {'error': 'Exercise not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )

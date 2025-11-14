@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Goal, GoalCreatePayload, GoalType, ClientProgress } from '../../types';
+import { Goal, GoalCreatePayload, GoalType } from '../../types';
 import { Card, Button, Modal, Input, Select, TextArea, Badge, ProgressBar } from '../ui';
-import { goalService, progressService } from '../../services';
+import { goalService } from '../../services';
 
 interface GoalsManagerProps {
   clientId: string;
@@ -21,8 +21,6 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ clientId }) => {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showAssessmentModal, setShowAssessmentModal] = useState(false);
-  const [hasInitialAssessment, setHasInitialAssessment] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [formData, setFormData] = useState<GoalCreatePayload>({
     goal_type: 'general_fitness',
@@ -33,21 +31,8 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ clientId }) => {
     target_date: '',
   });
 
-  const [assessmentData, setAssessmentData] = useState({
-    weight: '',
-    body_fat_percentage: '',
-    muscle_mass: '',
-    chest: '',
-    waist: '',
-    hips: '',
-    arms: '',
-    thighs: '',
-    notes: '',
-  });
-
   useEffect(() => {
     loadGoals();
-    checkInitialAssessment();
   }, [clientId]);
 
   const loadGoals = async () => {
@@ -60,81 +45,6 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ clientId }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const checkInitialAssessment = async () => {
-    try {
-      const progressData = await progressService.getProgressByClient(clientId);
-      setHasInitialAssessment(progressData.length > 0);
-    } catch (error) {
-      console.error('Error checking initial assessment:', error);
-      setHasInitialAssessment(false);
-    }
-  };
-
-  const handleAddGoalClick = () => {
-    if (!hasInitialAssessment) {
-      setShowAssessmentModal(true);
-    } else {
-      setShowAddModal(true);
-    }
-  };
-
-  const handleAssessmentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Validate that at least one measurement is provided
-    const hasData = Object.entries(assessmentData).some(([key, value]) =>
-      key !== 'notes' && value !== ''
-    );
-
-    if (!hasData) {
-      alert('Please provide at least one measurement');
-      return;
-    }
-
-    try {
-      const dataToSubmit: any = {
-        recorded_date: new Date().toISOString().split('T')[0],
-      };
-
-      // Only include non-empty fields
-      if (assessmentData.weight) dataToSubmit.weight = parseFloat(assessmentData.weight);
-      if (assessmentData.body_fat_percentage) dataToSubmit.body_fat_percentage = parseFloat(assessmentData.body_fat_percentage);
-      if (assessmentData.muscle_mass) dataToSubmit.muscle_mass = parseFloat(assessmentData.muscle_mass);
-      if (assessmentData.chest) dataToSubmit.chest = parseFloat(assessmentData.chest);
-      if (assessmentData.waist) dataToSubmit.waist = parseFloat(assessmentData.waist);
-      if (assessmentData.hips) dataToSubmit.hips = parseFloat(assessmentData.hips);
-      if (assessmentData.arms) dataToSubmit.arms = parseFloat(assessmentData.arms);
-      if (assessmentData.thighs) dataToSubmit.thighs = parseFloat(assessmentData.thighs);
-      if (assessmentData.notes) dataToSubmit.notes = assessmentData.notes;
-
-      await progressService.createProgress(clientId, dataToSubmit);
-
-      setHasInitialAssessment(true);
-      setShowAssessmentModal(false);
-      resetAssessmentForm();
-      setShowAddModal(true);
-
-      alert('Initial assessment recorded successfully! Now you can create goals.');
-    } catch (error: any) {
-      console.error('Error saving assessment:', error);
-      alert(`Failed to save assessment: ${error.message || 'Please try again.'}`);
-    }
-  };
-
-  const resetAssessmentForm = () => {
-    setAssessmentData({
-      weight: '',
-      body_fat_percentage: '',
-      muscle_mass: '',
-      chest: '',
-      waist: '',
-      hips: '',
-      arms: '',
-      thighs: '',
-      notes: '',
-    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -218,7 +128,7 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ clientId }) => {
             {activeGoals.length} active, {completedGoals.length} completed
           </p>
         </div>
-        <Button onClick={handleAddGoalClick}>Add Goal</Button>
+        <Button onClick={() => setShowAddModal(true)}>Add Goal</Button>
       </div>
 
       {/* Active Goals */}
@@ -315,126 +225,6 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ clientId }) => {
           </p>
         </Card>
       )}
-
-      {/* Initial Assessment Modal */}
-      <Modal
-        isOpen={showAssessmentModal}
-        onClose={() => {
-          setShowAssessmentModal(false);
-          resetAssessmentForm();
-        }}
-        title="Initial Assessment Required"
-        size="lg"
-        footer={
-          <>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setShowAssessmentModal(false);
-                resetAssessmentForm();
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleAssessmentSubmit}>Save & Continue to Goals</Button>
-          </>
-        }
-      >
-        <div className="mb-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-          <p className="text-blue-300 text-sm">
-            📋 Before setting goals, let's record the client's initial measurements. This will serve as the baseline for tracking progress.
-          </p>
-        </div>
-        <form onSubmit={handleAssessmentSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Weight (kg)"
-              type="number"
-              step="0.1"
-              value={assessmentData.weight}
-              onChange={(e) => setAssessmentData({ ...assessmentData, weight: e.target.value })}
-              placeholder="e.g., 75.5"
-            />
-            <Input
-              label="Body Fat (%)"
-              type="number"
-              step="0.1"
-              value={assessmentData.body_fat_percentage}
-              onChange={(e) => setAssessmentData({ ...assessmentData, body_fat_percentage: e.target.value })}
-              placeholder="e.g., 20.5"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Muscle Mass (kg)"
-              type="number"
-              step="0.1"
-              value={assessmentData.muscle_mass}
-              onChange={(e) => setAssessmentData({ ...assessmentData, muscle_mass: e.target.value })}
-              placeholder="e.g., 35.0"
-            />
-            <Input
-              label="Chest (cm)"
-              type="number"
-              step="0.1"
-              value={assessmentData.chest}
-              onChange={(e) => setAssessmentData({ ...assessmentData, chest: e.target.value })}
-              placeholder="e.g., 100"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Waist (cm)"
-              type="number"
-              step="0.1"
-              value={assessmentData.waist}
-              onChange={(e) => setAssessmentData({ ...assessmentData, waist: e.target.value })}
-              placeholder="e.g., 85"
-            />
-            <Input
-              label="Hips (cm)"
-              type="number"
-              step="0.1"
-              value={assessmentData.hips}
-              onChange={(e) => setAssessmentData({ ...assessmentData, hips: e.target.value })}
-              placeholder="e.g., 95"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Arms (cm)"
-              type="number"
-              step="0.1"
-              value={assessmentData.arms}
-              onChange={(e) => setAssessmentData({ ...assessmentData, arms: e.target.value })}
-              placeholder="e.g., 35"
-            />
-            <Input
-              label="Thighs (cm)"
-              type="number"
-              step="0.1"
-              value={assessmentData.thighs}
-              onChange={(e) => setAssessmentData({ ...assessmentData, thighs: e.target.value })}
-              placeholder="e.g., 60"
-            />
-          </div>
-
-          <TextArea
-            label="Initial Notes"
-            value={assessmentData.notes}
-            onChange={(e) => setAssessmentData({ ...assessmentData, notes: e.target.value })}
-            placeholder="Any observations, fitness level, health conditions, etc."
-            rows={3}
-          />
-
-          <p className="text-sm text-gray-400">
-            * At least one measurement is required
-          </p>
-        </form>
-      </Modal>
 
       {/* Add/Edit Goal Modal */}
       <Modal

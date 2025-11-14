@@ -69,19 +69,34 @@ class Goal(models.Model):
     GOAL_TYPE_CHOICES = (
         ('weight_loss', 'Weight Loss'),
         ('muscle_gain', 'Muscle Gain'),
+        ('strength', 'Strength Training'),
         ('endurance', 'Endurance'),
         ('flexibility', 'Flexibility'),
         ('general_fitness', 'General Fitness'),
+        ('rehabilitation', 'Rehabilitation'),
     )
-    goal_type = models.CharField(max_length=20, choices=GOAL_TYPE_CHOICES)
+
+    STATUS_CHOICES = (
+        ('active', 'Active'),
+        ('completed', 'Completed'),
+        ('paused', 'Paused'),
+        ('abandoned', 'Abandoned'),
+    )
+
     client = models.ForeignKey(
         Client,
         on_delete=models.CASCADE,
         related_name='goals'
     )
+    goal_type = models.CharField(max_length=20, choices=GOAL_TYPE_CHOICES)
+    title = models.CharField(max_length=255, default='')
     description = models.TextField()
+    target_value = models.CharField(max_length=100, blank=True, default='')
+    current_value = models.CharField(max_length=100, blank=True, default='')
     target_date = models.DateField(null=True, blank=True)
-    achieved = models.BooleanField(default=False)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    achieved = models.BooleanField(default=False)  # Kept for backward compatibility
+    completed_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -92,7 +107,16 @@ class Goal(models.Model):
         verbose_name_plural = 'Goals'
 
     def __str__(self):
-        return f"Goal for {self.client.full_name}: {self.description[:30]}..."
+        return f"Goal for {self.client.full_name}: {self.title or self.description[:30]}..."
+
+    def save(self, *args, **kwargs):
+        # Auto-update status based on achieved flag for backward compatibility
+        if self.achieved and self.status == 'active':
+            self.status = 'completed'
+            if not self.completed_at:
+                from django.utils import timezone
+                self.completed_at = timezone.now()
+        super().save(*args, **kwargs)
 
 
 class WorkoutPlan(models.Model):

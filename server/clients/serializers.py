@@ -1,25 +1,33 @@
 from rest_framework import serializers
-from .models import Client, Goal
+from .models import Client, Goal, WorkoutPlan, Exercise
 
 
 class GoalSerializer(serializers.ModelSerializer):
     """Serializer for Goal model"""
 
     goal_type_display = serializers.CharField(source='get_goal_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
 
     class Meta:
         model = Goal
         fields = [
             'id',
+            'client',
             'goal_type',
             'goal_type_display',
+            'title',
             'description',
+            'target_value',
+            'current_value',
             'target_date',
+            'status',
+            'status_display',
             'achieved',
+            'completed_at',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'client', 'created_at', 'updated_at', 'completed_at']
 
 
 class GoalCreateSerializer(serializers.ModelSerializer):
@@ -27,7 +35,76 @@ class GoalCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Goal
-        fields = ['goal_type', 'description', 'target_date', 'achieved']
+        fields = [
+            'goal_type',
+            'title',
+            'description',
+            'target_value',
+            'current_value',
+            'target_date',
+            'status',
+            'achieved'
+        ]
+
+
+class ExerciseSerializer(serializers.ModelSerializer):
+    """Serializer for Exercise model"""
+
+    class Meta:
+        model = Exercise
+        fields = [
+            'id',
+            'workout_plan',
+            'name',
+            'description',
+            'sets',
+            'reps',
+            'rest_period_seconds',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'workout_plan', 'created_at', 'updated_at']
+
+
+class ExerciseCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating exercises"""
+
+    class Meta:
+        model = Exercise
+        fields = [
+            'name',
+            'description',
+            'sets',
+            'reps',
+            'rest_period_seconds',
+        ]
+
+
+class WorkoutPlanSerializer(serializers.ModelSerializer):
+    """Serializer for WorkoutPlan model with exercises"""
+
+    exercises = ExerciseSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = WorkoutPlan
+        fields = [
+            'id',
+            'client',
+            'name',
+            'description',
+            'exercises',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'client', 'created_at', 'updated_at']
+
+
+class WorkoutPlanCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating workout plans"""
+
+    class Meta:
+        model = WorkoutPlan
+        fields = ['name', 'description']
 
 
 class PaymentSummarySerializer(serializers.Serializer):

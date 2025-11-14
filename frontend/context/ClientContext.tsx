@@ -1,6 +1,7 @@
 import React, { createContext, useReducer, useContext, useEffect, ReactNode } from 'react';
 import { Client } from '../types';
 import { clientService } from '../services';
+import { useAuth } from './AuthContext';
 
 type Action =
   | { type: 'LOAD_CLIENTS'; payload: Client[] }
@@ -51,6 +52,7 @@ const clientReducer = (state: ClientState, action: Action): ClientState => {
 
 export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(clientReducer, { clients: [], loading: true });
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   // Load clients from backend on mount
   const refreshClients = async () => {
@@ -65,8 +67,14 @@ export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   useEffect(() => {
-    refreshClients();
-  }, []);
+    // Only load clients if authenticated and auth is done loading
+    if (!authLoading && isAuthenticated) {
+      refreshClients();
+    } else if (!authLoading && !isAuthenticated) {
+      // If not authenticated, set loading to false
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [isAuthenticated, authLoading]);
 
   const getClientById = (id: string) => state.clients.find(c => c.id === id);
 

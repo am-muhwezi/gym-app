@@ -11,7 +11,7 @@ import {
   Client,
 } from '../types';
 import { Card, Button, Modal, Input, Select, TextArea, Badge, StatCard } from '../components/ui';
-import { paymentService, clientService } from '../services';
+import { paymentService, clientService, generatePaymentReceipt, printReceipt } from '../services';
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'cash', label: 'Cash' },
@@ -74,7 +74,7 @@ const PaymentsPage: React.FC = () => {
       setLoading(true);
       const [paymentsData, clientsData, stats] = await Promise.all([
         paymentService.getPayments(),
-        clientService.getClients(),
+        clientService.getAllClients(),
         paymentService.getStatistics().catch(() => null),
       ]);
       setPayments(paymentsData);
@@ -142,6 +142,20 @@ const PaymentsPage: React.FC = () => {
       setShowReceiptModal(true);
     } catch (error: any) {
       alert(`Failed to load receipt: ${error.message}`);
+    }
+  };
+
+  const handlePrintReceipt = async (payment: Payment) => {
+    try {
+      const client = clients.find((c) => c.id === payment.client);
+      if (!client) {
+        alert('Client not found');
+        return;
+      }
+      const receiptHTML = generatePaymentReceipt(payment, client);
+      printReceipt(receiptHTML);
+    } catch (error: any) {
+      alert(`Failed to print receipt: ${error.message}`);
     }
   };
 
@@ -237,31 +251,28 @@ const PaymentsPage: React.FC = () => {
         <Button onClick={() => setShowCreateModal(true)}>Create Invoice</Button>
       </div>
 
-      {/* Statistics */}
+      {/* Compact Statistics Bar */}
       {statistics && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            title="Total Received"
-            value={`KES ${statistics.total_received.toLocaleString()}`}
-            icon="✅"
-          />
-          <StatCard
-            title="Pending"
-            value={`KES ${statistics.pending_amount.toLocaleString()}`}
-            icon="⏳"
-          />
-          <StatCard
-            title="Overdue"
-            value={`KES ${statistics.overdue_amount.toLocaleString()}`}
-            icon="⚠️"
-          />
-          <StatCard
-            title="This Month"
-            value={`KES ${statistics.this_month_revenue.toLocaleString()}`}
-            subtitle={`Last month: KES ${statistics.last_month_revenue.toLocaleString()}`}
-            icon="📊"
-          />
-        </div>
+        <Card>
+          <div className="flex flex-wrap items-center justify-between gap-4 py-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-400">Total Received:</span>
+              <span className="text-lg font-bold text-green-400">KES {(statistics.total_received || 0).toLocaleString()}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-400">Pending:</span>
+              <span className="text-lg font-bold text-yellow-400">KES {(statistics.pending_amount || 0).toLocaleString()}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-400">Overdue:</span>
+              <span className="text-lg font-bold text-red-400">KES {(statistics.overdue_amount || 0).toLocaleString()}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-400">This Month:</span>
+              <span className="text-lg font-bold text-brand-primary">KES {(statistics.this_month_revenue || 0).toLocaleString()}</span>
+            </div>
+          </div>
+        </Card>
       )}
 
       {/* Filters */}
@@ -315,8 +326,8 @@ const PaymentsPage: React.FC = () => {
           <table className="w-full">
             <thead>
               <tr className="border-b border-dark-700">
-                <th className="text-left p-4 text-gray-400 font-semibold">Invoice</th>
                 <th className="text-left p-4 text-gray-400 font-semibold">Client</th>
+                <th className="text-left p-4 text-gray-400 font-semibold">Description</th>
                 <th className="text-left p-4 text-gray-400 font-semibold">Amount</th>
                 <th className="text-left p-4 text-gray-400 font-semibold">Status</th>
                 <th className="text-left p-4 text-gray-400 font-semibold">Due Date</th>
@@ -338,24 +349,21 @@ const PaymentsPage: React.FC = () => {
                       }`}
                     >
                       <td className="p-4">
-                        <p className="font-mono text-sm text-white">
-                          {payment.invoice_number || `#${payment.id.slice(0, 8)}`}
-                        </p>
-                        {payment.description && (
-                          <p className="text-xs text-gray-500">{payment.description}</p>
-                        )}
-                      </td>
-                      <td className="p-4">
                         <Link
                           to={`/clients/${payment.client}`}
-                          className="text-brand-primary hover:text-brand-secondary"
+                          className="text-brand-primary hover:text-brand-secondary font-semibold"
                         >
                           {getClientName(payment.client)}
                         </Link>
                       </td>
                       <td className="p-4">
-                        <p className="font-bold text-white">KES {payment.amount.toLocaleString()}</p>
+                        <p className="text-sm text-white">
+                          {payment.description || 'Payment'}
+                        </p>
                         <p className="text-xs text-gray-500 capitalize">{method}</p>
+                      </td>
+                      <td className="p-4">
+                        <p className="font-bold text-white">KES {Number(payment.amount || 0).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-2">
@@ -412,8 +420,8 @@ const PaymentsPage: React.FC = () => {
                             </>
                           )}
                           {status === 'completed' && (
-                            <Button size="sm" variant="secondary" onClick={() => handleViewReceipt(payment)}>
-                              View Receipt
+                            <Button size="sm" onClick={() => handlePrintReceipt(payment)}>
+                              Print Receipt
                             </Button>
                           )}
                           {status !== 'completed' && (
@@ -470,6 +478,79 @@ const PaymentsPage: React.FC = () => {
               label: `${c.first_name} ${c.last_name}`,
             }))}
           />
+
+          {/* Membership Plan Templates */}
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Membership Plan (Quick Select)</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setCreateForm({
+                  ...createForm,
+                  amount: 2000,
+                  description: 'Per Session',
+                  due_date: new Date().toISOString().split('T')[0]
+                })}
+                className="p-3 bg-dark-800 hover:bg-dark-700 text-left rounded-lg border border-dark-700 transition-colors"
+              >
+                <p className="font-semibold text-white">Per Session</p>
+                <p className="text-sm text-brand-primary">KES 2,000</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const nextMonth = new Date();
+                  nextMonth.setMonth(nextMonth.getMonth() + 1);
+                  setCreateForm({
+                    ...createForm,
+                    amount: 5000,
+                    description: 'Monthly Membership',
+                    due_date: nextMonth.toISOString().split('T')[0]
+                  });
+                }}
+                className="p-3 bg-dark-800 hover:bg-dark-700 text-left rounded-lg border border-dark-700 transition-colors"
+              >
+                <p className="font-semibold text-white">Monthly</p>
+                <p className="text-sm text-brand-primary">KES 5,000</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const nextQuarter = new Date();
+                  nextQuarter.setMonth(nextQuarter.getMonth() + 3);
+                  setCreateForm({
+                    ...createForm,
+                    amount: 13500,
+                    description: 'Quarterly Membership (3 months)',
+                    due_date: nextQuarter.toISOString().split('T')[0]
+                  });
+                }}
+                className="p-3 bg-dark-800 hover:bg-dark-700 text-left rounded-lg border border-dark-700 transition-colors"
+              >
+                <p className="font-semibold text-white">Quarterly</p>
+                <p className="text-sm text-brand-primary">KES 13,500</p>
+                <p className="text-xs text-gray-500">Save 10%</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const nextYear = new Date();
+                  nextYear.setFullYear(nextYear.getFullYear() + 1);
+                  setCreateForm({
+                    ...createForm,
+                    amount: 48000,
+                    description: 'Annual Membership (12 months)',
+                    due_date: nextYear.toISOString().split('T')[0]
+                  });
+                }}
+                className="p-3 bg-dark-800 hover:bg-dark-700 text-left rounded-lg border border-dark-700 transition-colors"
+              >
+                <p className="font-semibold text-white">Annual</p>
+                <p className="text-sm text-brand-primary">KES 48,000</p>
+                <p className="text-xs text-gray-500">Save 20%</p>
+              </button>
+            </div>
+          </div>
 
           <Input
             label="Amount (KES) *"

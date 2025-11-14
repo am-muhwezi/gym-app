@@ -310,15 +310,18 @@ class PaymentViewSet(viewsets.ModelViewSet):
             payment.payment_method = request.data['payment_method']
 
         if 'transaction_id' in request.data:
-            payment.transaction_id = request.data['transaction_id']
+            # Handle empty transaction_id - set to None instead of empty string to avoid UNIQUE constraint issues
+            transaction_id = request.data['transaction_id']
+            payment.transaction_id = transaction_id if transaction_id and transaction_id.strip() else None
 
         if 'notes' in request.data:
             note = request.data['notes']
-            payment.description = (
-                f"{payment.description}\n\nPayment Note: {note}"
-                if payment.description
-                else f"Payment Note: {note}"
-            )
+            if note and note.strip():
+                payment.description = (
+                    f"{payment.description}\n\nPayment Note: {note}"
+                    if payment.description
+                    else f"Payment Note: {note}"
+                )
 
         payment.save()
 
