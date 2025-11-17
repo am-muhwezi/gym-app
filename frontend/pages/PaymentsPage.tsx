@@ -12,6 +12,7 @@ import {
 } from '../types';
 import { Card, Button, Modal, Input, Select, TextArea, Badge, StatCard } from '../components/ui';
 import { paymentService, clientService, generatePaymentReceipt, printReceipt } from '../services';
+import { PaymentDetailsModal } from '../components/payments';
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'cash', label: 'Cash' },
@@ -39,11 +40,8 @@ const PaymentsPage: React.FC = () => {
   const [selectedClient, setSelectedClient] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showMpesaModal, setShowMpesaModal] = useState(false);
-  const [showMarkPaidModal, setShowMarkPaidModal] = useState(false);
-  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-  const [receipt, setReceipt] = useState<any>(null);
 
   const [createForm, setCreateForm] = useState<PaymentCreatePayload>({
     client: '',
@@ -52,16 +50,6 @@ const PaymentsPage: React.FC = () => {
     phone_number: '',
     due_date: '',
     description: '',
-    notes: '',
-  });
-
-  const [mpesaForm, setMpesaForm] = useState<PaymentMpesaPayload>({
-    phone_number: '',
-  });
-
-  const [markPaidForm, setMarkPaidForm] = useState<PaymentMarkPaidPayload>({
-    payment_method: 'cash',
-    transaction_id: '',
     notes: '',
   });
 
@@ -103,71 +91,9 @@ const PaymentsPage: React.FC = () => {
     }
   };
 
-  const handleMpesaPayment = async () => {
-    if (!selectedPayment || !mpesaForm.phone_number) {
-      alert('Please enter phone number');
-      return;
-    }
-
-    try {
-      const result = await paymentService.payWithMpesa(selectedPayment.id, mpesaForm);
-      alert(result.message || 'M-Pesa payment prompt sent successfully!');
-      setShowMpesaModal(false);
-      setMpesaForm({ phone_number: '' });
-      setSelectedPayment(null);
-      loadData();
-    } catch (error: any) {
-      alert(`Failed to initiate M-Pesa payment: ${error.message}`);
-    }
-  };
-
-  const handleMarkAsPaid = async () => {
-    if (!selectedPayment) return;
-
-    try {
-      await paymentService.markAsPaid(selectedPayment.id, markPaidForm);
-      setShowMarkPaidModal(false);
-      resetMarkPaidForm();
-      setSelectedPayment(null);
-      loadData();
-    } catch (error: any) {
-      alert(`Failed to mark payment as paid: ${error.message}`);
-    }
-  };
-
-  const handleViewReceipt = async (payment: Payment) => {
-    try {
-      const receiptData = await paymentService.getReceipt(payment.id);
-      setReceipt(receiptData);
-      setShowReceiptModal(true);
-    } catch (error: any) {
-      alert(`Failed to load receipt: ${error.message}`);
-    }
-  };
-
-  const handlePrintReceipt = async (payment: Payment) => {
-    try {
-      const client = clients.find((c) => c.id === payment.client);
-      if (!client) {
-        alert('Client not found');
-        return;
-      }
-      const receiptHTML = generatePaymentReceipt(payment, client);
-      printReceipt(receiptHTML);
-    } catch (error: any) {
-      alert(`Failed to print receipt: ${error.message}`);
-    }
-  };
-
-  const handleDeletePayment = async (paymentId: string) => {
-    if (confirm('Are you sure you want to delete this payment?')) {
-      try {
-        await paymentService.deletePayment(paymentId);
-        loadData();
-      } catch (error: any) {
-        alert(`Failed to delete payment: ${error.message}`);
-      }
-    }
+  const handlePaymentClick = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setShowDetailsModal(true);
   };
 
   const resetCreateForm = () => {
@@ -182,13 +108,6 @@ const PaymentsPage: React.FC = () => {
     });
   };
 
-  const resetMarkPaidForm = () => {
-    setMarkPaidForm({
-      payment_method: 'cash',
-      transaction_id: '',
-      notes: '',
-    });
-  };
 
   const getStatusBadge = (status: PaymentStatus) => {
     const variants = {
@@ -331,7 +250,6 @@ const PaymentsPage: React.FC = () => {
                 <th className="text-left p-4 text-gray-400 font-semibold">Amount</th>
                 <th className="text-left p-4 text-gray-400 font-semibold">Status</th>
                 <th className="text-left p-4 text-gray-400 font-semibold">Due Date</th>
-                <th className="text-right p-4 text-gray-400 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -344,17 +262,15 @@ const PaymentsPage: React.FC = () => {
                   return (
                     <tr
                       key={payment.id}
-                      className={`border-b border-dark-700 hover:bg-dark-800 ${
+                      onClick={() => handlePaymentClick(payment)}
+                      className={`border-b border-dark-700 hover:bg-dark-800 cursor-pointer transition-colors ${
                         isOverdue ? 'bg-red-500/5' : ''
                       }`}
                     >
                       <td className="p-4">
-                        <Link
-                          to={`/clients/${payment.client}`}
-                          className="text-brand-primary hover:text-brand-secondary font-semibold"
-                        >
+                        <p className="text-brand-primary hover:text-brand-secondary font-semibold">
                           {getClientName(payment.client)}
-                        </Link>
+                        </p>
                       </td>
                       <td className="p-4">
                         <p className="text-sm text-white">
@@ -384,62 +300,12 @@ const PaymentsPage: React.FC = () => {
                           <p className="text-sm text-gray-600">-</p>
                         )}
                       </td>
-                      <td className="p-4">
-                        <div className="flex justify-end gap-2">
-                          {status === 'pending' && (
-                            <>
-                              {method === 'mpesa' || !method ? (
-                                <Button
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedPayment(payment);
-                                    setMpesaForm({
-                                      phone_number: payment.phone_number || '',
-                                    });
-                                    setShowMpesaModal(true);
-                                  }}
-                                >
-                                  Pay M-Pesa
-                                </Button>
-                              ) : null}
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => {
-                                  setSelectedPayment(payment);
-                                  setMarkPaidForm({
-                                    payment_method: method || 'cash',
-                                    transaction_id: '',
-                                    notes: '',
-                                  });
-                                  setShowMarkPaidModal(true);
-                                }}
-                              >
-                                Mark Paid
-                              </Button>
-                            </>
-                          )}
-                          {status === 'completed' && (
-                            <Button size="sm" onClick={() => handlePrintReceipt(payment)}>
-                              Print Receipt
-                            </Button>
-                          )}
-                          {status !== 'completed' && (
-                            <button
-                              onClick={() => handleDeletePayment(payment.id)}
-                              className="text-red-400 hover:text-red-300 text-sm px-2"
-                            >
-                              Delete
-                            </button>
-                          )}
-                        </div>
-                      </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-gray-400">
+                  <td colSpan={5} className="p-8 text-center text-gray-400">
                     No payments found
                   </td>
                 </tr>
@@ -606,210 +472,17 @@ const PaymentsPage: React.FC = () => {
         </div>
       </Modal>
 
-      {/* M-Pesa Payment Modal */}
-      <Modal
-        isOpen={showMpesaModal}
+      {/* Payment Details Modal */}
+      <PaymentDetailsModal
+        isOpen={showDetailsModal}
         onClose={() => {
-          setShowMpesaModal(false);
-          setMpesaForm({ phone_number: '' });
+          setShowDetailsModal(false);
           setSelectedPayment(null);
         }}
-        title="Initiate M-Pesa Payment"
-        footer={
-          <>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setShowMpesaModal(false);
-                setMpesaForm({ phone_number: '' });
-                setSelectedPayment(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleMpesaPayment}>Send Payment Prompt</Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          {selectedPayment && (
-            <>
-              <div className="p-4 bg-dark-800 rounded-lg">
-                <p className="text-sm text-gray-400">Amount</p>
-                <p className="text-2xl font-bold text-white">
-                  KES {selectedPayment.amount.toLocaleString()}
-                </p>
-              </div>
-              <Input
-                label="Phone Number (254...) *"
-                required
-                value={mpesaForm.phone_number}
-                onChange={(e) => setMpesaForm({ phone_number: e.target.value })}
-                placeholder="254712345678"
-              />
-              <p className="text-sm text-gray-400">
-                The client will receive an M-Pesa payment prompt on their phone. Once they enter
-                their PIN, the payment will be processed automatically.
-              </p>
-            </>
-          )}
-        </div>
-      </Modal>
-
-      {/* Mark as Paid Modal */}
-      <Modal
-        isOpen={showMarkPaidModal}
-        onClose={() => {
-          setShowMarkPaidModal(false);
-          resetMarkPaidForm();
-          setSelectedPayment(null);
-        }}
-        title="Mark Payment as Paid"
-        footer={
-          <>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setShowMarkPaidModal(false);
-                resetMarkPaidForm();
-                setSelectedPayment(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleMarkAsPaid}>Confirm Payment</Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          {selectedPayment && (
-            <>
-              <div className="p-4 bg-dark-800 rounded-lg">
-                <p className="text-sm text-gray-400">Amount</p>
-                <p className="text-2xl font-bold text-white">
-                  KES {selectedPayment.amount.toLocaleString()}
-                </p>
-              </div>
-              <Select
-                label="Payment Method *"
-                required
-                value={markPaidForm.payment_method || 'cash'}
-                onChange={(e) =>
-                  setMarkPaidForm({
-                    ...markPaidForm,
-                    payment_method: e.target.value as PaymentMethod,
-                  })
-                }
-                options={PAYMENT_METHODS}
-              />
-              <Input
-                label="Transaction ID (optional)"
-                value={markPaidForm.transaction_id}
-                onChange={(e) =>
-                  setMarkPaidForm({ ...markPaidForm, transaction_id: e.target.value })
-                }
-                placeholder="e.g., CASH-001"
-              />
-              <TextArea
-                label="Notes (optional)"
-                value={markPaidForm.notes}
-                onChange={(e) => setMarkPaidForm({ ...markPaidForm, notes: e.target.value })}
-                placeholder="e.g., Paid in cash at gym"
-              />
-            </>
-          )}
-        </div>
-      </Modal>
-
-      {/* Receipt Modal */}
-      <Modal
-        isOpen={showReceiptModal}
-        onClose={() => {
-          setShowReceiptModal(false);
-          setReceipt(null);
-        }}
-        title="Payment Receipt"
-        size="lg"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setShowReceiptModal(false)}>
-              Close
-            </Button>
-            <Button onClick={() => window.print()}>Print Receipt</Button>
-          </>
-        }
-      >
-        {receipt && (
-          <div className="space-y-6" id="receipt-print">
-            <div className="text-center border-b border-dark-700 pb-4">
-              <h2 className="text-2xl font-bold text-white">PAYMENT RECEIPT</h2>
-              <p className="text-brand-primary text-lg mt-2">TrainrUp</p>
-              <p className="text-gray-400 text-sm">Trainer: {receipt.trainer_name}</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-gray-400">Receipt #</p>
-                <p className="font-bold text-white">{receipt.invoice_number}</p>
-              </div>
-              <div>
-                <p className="text-gray-400">Date</p>
-                <p className="font-bold text-white">
-                  {new Date(receipt.payment_date).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
-
-            <div className="border-t border-dark-700 pt-4">
-              <h3 className="font-semibold text-white mb-2">BILLED TO:</h3>
-              <p className="font-bold text-white">{receipt.client_name}</p>
-              <p className="text-gray-400 text-sm">{receipt.client_email}</p>
-              <p className="text-gray-400 text-sm">{receipt.client_phone}</p>
-            </div>
-
-            <div className="border-t border-dark-700 pt-4">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-dark-700">
-                    <th className="text-left p-2 text-gray-400">Description</th>
-                    <th className="text-right p-2 text-gray-400">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="p-2 text-white">{receipt.description}</td>
-                    <td className="p-2 text-right font-bold text-white">
-                      KES {receipt.amount.toLocaleString()}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="border-t border-dark-700 pt-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xl font-bold text-white">TOTAL PAID:</h3>
-                <p className="text-2xl font-bold text-brand-primary">
-                  KES {receipt.amount.toLocaleString()}
-                </p>
-              </div>
-            </div>
-
-            <div className="border-t border-dark-700 pt-4 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-400">Payment Method:</span>
-                <span className="text-white font-semibold">{receipt.payment_method_display}</span>
-              </div>
-              {receipt.mpesa_receipt_number && (
-                <div className="flex justify-between">
-                  <span className="text-gray-400">M-Pesa Receipt:</span>
-                  <span className="text-white font-mono">{receipt.mpesa_receipt_number}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </Modal>
+        payment={selectedPayment}
+        client={selectedPayment ? clients.find((c) => c.id === selectedPayment.client) || null : null}
+        onUpdate={loadData}
+      />
     </div>
   );
 };

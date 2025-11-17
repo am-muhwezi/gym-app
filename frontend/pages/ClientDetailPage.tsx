@@ -303,7 +303,7 @@ const ClientDetailPage: React.FC = () => {
                     />
                 )}
                 {activeTab === 'payments' && (
-                    <PaymentManager clientId={client.id} />
+                    <PaymentManager clientId={client.id} client={client} />
                 )}
             </div>
         </div>

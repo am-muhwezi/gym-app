@@ -116,7 +116,7 @@ export const generatePaymentReceipt = (payment: Payment, client: Client): string
       </style>
     </head>
     <body>
-      <div class="receipt-number">Receipt #: ${payment.invoice_number || payment.id.slice(0, 12).toUpperCase()}</div>
+      <div class="receipt-number">Receipt #: ${payment.invoice_number || String(payment.id).slice(0, 12).toUpperCase()}</div>
 
       <!-- Processed By Section -->
       <div class="section">
@@ -138,7 +138,7 @@ export const generatePaymentReceipt = (payment: Payment, client: Client): string
         </div>
         <div class="info-row">
           <span class="info-label">Member ID:</span>
-          <span class="info-value">${client.id.slice(0, 8).toUpperCase()}</span>
+          <span class="info-value">${String(client.id).slice(0, 8).toUpperCase()}</span>
         </div>
         <div class="info-row">
           <span class="info-label">Phone:</span>

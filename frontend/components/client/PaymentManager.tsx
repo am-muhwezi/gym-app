@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Payment, PaymentMethod, PaymentCreatePayload, PaymentMarkPaidPayload } from '../../types';
+import { Payment, PaymentMethod, PaymentCreatePayload, PaymentMarkPaidPayload, Client } from '../../types';
 import { Card, Button, Modal, Input, Select, TextArea, Badge } from '../ui';
 import { paymentService, clientService } from '../../services';
 import { generatePaymentReceipt, printReceipt } from '../../services/receiptService';
+import { PaymentDetailsModal } from '../payments';
 
 interface PaymentManagerProps {
   clientId: string;
+  client?: Client | null;
 }
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
@@ -17,13 +19,11 @@ const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'other', label: 'Other' },
 ];
 
-const PaymentManager: React.FC<PaymentManagerProps> = ({ clientId }) => {
+const PaymentManager: React.FC<PaymentManagerProps> = ({ clientId, client }) => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showViewModal, setShowViewModal] = useState(false);
-  const [showMpesaModal, setShowMpesaModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
 
   const [formData, setFormData] = useState<PaymentCreatePayload>({
@@ -34,16 +34,6 @@ const PaymentManager: React.FC<PaymentManagerProps> = ({ clientId }) => {
     due_date: '',
     description: '',
     notes: '',
-  });
-
-  const [confirmData, setConfirmData] = useState<PaymentMarkPaidPayload>({
-    payment_method: 'cash',
-    transaction_id: '',
-    notes: '',
-  });
-
-  const [mpesaForm, setMpesaForm] = useState({
-    phone_number: '',
   });
 
   useEffect(() => {
@@ -80,41 +70,6 @@ const PaymentManager: React.FC<PaymentManagerProps> = ({ clientId }) => {
     }
   };
 
-  const handleConfirmPayment = async () => {
-    if (!selectedPayment) return;
-
-    try {
-      await paymentService.markAsPaid(selectedPayment.id, confirmData);
-      setShowConfirmModal(false);
-      setShowViewModal(false);
-      setSelectedPayment(null);
-      resetConfirmForm();
-      loadPayments();
-    } catch (error: any) {
-      console.error('Error confirming payment:', error);
-      alert(`Failed to confirm payment: ${error.message}`);
-    }
-  };
-
-  const handleMpesaPayment = async () => {
-    if (!selectedPayment || !mpesaForm.phone_number) {
-      alert('Please enter phone number');
-      return;
-    }
-
-    try {
-      const result = await paymentService.payWithMpesa(selectedPayment.id, mpesaForm);
-      alert(result.message || 'M-Pesa payment prompt sent successfully!');
-      setShowMpesaModal(false);
-      setShowViewModal(false);
-      setMpesaForm({ phone_number: '' });
-      setSelectedPayment(null);
-      loadPayments();
-    } catch (error: any) {
-      alert(`Failed to initiate M-Pesa payment: ${error.message}`);
-    }
-  };
-
   const resetForm = () => {
     setFormData({
       client: clientId,
@@ -127,12 +82,9 @@ const PaymentManager: React.FC<PaymentManagerProps> = ({ clientId }) => {
     });
   };
 
-  const resetConfirmForm = () => {
-    setConfirmData({
-      payment_method: 'cash',
-      transaction_id: '',
-      notes: '',
-    });
+  const handlePaymentClick = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setShowDetailsModal(true);
   };
 
   const getStatusBadge = (status: string) => {
@@ -252,7 +204,6 @@ const PaymentManager: React.FC<PaymentManagerProps> = ({ clientId }) => {
                   <th className="text-left p-3 text-gray-400 font-semibold text-sm">Method</th>
                   <th className="text-left p-3 text-gray-400 font-semibold text-sm">Status</th>
                   <th className="text-left p-3 text-gray-400 font-semibold text-sm">Due Date</th>
-                  <th className="text-right p-3 text-gray-400 font-semibold text-sm">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -264,7 +215,8 @@ const PaymentManager: React.FC<PaymentManagerProps> = ({ clientId }) => {
                   return (
                     <tr
                       key={payment.id}
-                      className={`border-b border-dark-700 hover:bg-dark-800 transition-colors ${
+                      onClick={() => handlePaymentClick(payment)}
+                      className={`border-b border-dark-700 hover:bg-dark-800 cursor-pointer transition-colors ${
                         isOverdue ? 'bg-red-500/5' : ''
                       }`}
                     >
@@ -297,18 +249,6 @@ const PaymentManager: React.FC<PaymentManagerProps> = ({ clientId }) => {
                         ) : (
                           <p className="text-sm text-gray-600">-</p>
                         )}
-                      </td>
-                      <td className="p-3 text-right">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => {
-                            setSelectedPayment(payment);
-                            setShowViewModal(true);
-                          }}
-                        >
-                          View
-                        </Button>
                       </td>
                     </tr>
                   );
@@ -479,265 +419,18 @@ const PaymentManager: React.FC<PaymentManagerProps> = ({ clientId }) => {
         </form>
       </Modal>
 
-      {/* Confirm Payment Modal */}
-      <Modal
-        isOpen={showConfirmModal}
+
+      {/* Payment Details Modal */}
+      <PaymentDetailsModal
+        isOpen={showDetailsModal}
         onClose={() => {
-          setShowConfirmModal(false);
-          setSelectedPayment(null);
-          resetConfirmForm();
-        }}
-        title="Confirm Payment"
-        footer={
-          <>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setShowConfirmModal(false);
-                setSelectedPayment(null);
-                resetConfirmForm();
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleConfirmPayment}>Confirm Payment</Button>
-          </>
-        }
-      >
-        {selectedPayment && (
-          <div className="space-y-4">
-            <div className="p-4 bg-dark-800 rounded-lg">
-              <p className="text-sm text-gray-400">Amount</p>
-              <p className="text-2xl font-bold text-white">
-                KES {selectedPayment.amount.toLocaleString()}
-              </p>
-              {selectedPayment.description && (
-                <p className="text-sm text-gray-500 mt-1">{selectedPayment.description}</p>
-              )}
-            </div>
-
-            <Select
-              label="Payment Method *"
-              required
-              value={confirmData.payment_method || 'cash'}
-              onChange={(e) =>
-                setConfirmData({
-                  ...confirmData,
-                  payment_method: e.target.value as PaymentMethod,
-                })
-              }
-              options={PAYMENT_METHODS}
-            />
-
-            <Input
-              label="Transaction ID (optional)"
-              value={confirmData.transaction_id}
-              onChange={(e) => setConfirmData({ ...confirmData, transaction_id: e.target.value })}
-              placeholder="e.g., CASH-001 or M-Pesa code"
-            />
-
-            <TextArea
-              label="Notes (optional)"
-              value={confirmData.notes}
-              onChange={(e) => setConfirmData({ ...confirmData, notes: e.target.value })}
-              placeholder="e.g., Paid in cash at reception"
-              rows={2}
-            />
-          </div>
-        )}
-      </Modal>
-
-      {/* View Payment Modal */}
-      <Modal
-        isOpen={showViewModal}
-        onClose={() => {
-          setShowViewModal(false);
+          setShowDetailsModal(false);
           setSelectedPayment(null);
         }}
-        title="Payment Details"
-        size="lg"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setShowViewModal(false)}>Close</Button>
-            {selectedPayment && (selectedPayment.payment_status || selectedPayment.status) === 'completed' && (
-              <Button onClick={() => handlePrintReceipt(selectedPayment)}>
-                Print Receipt
-              </Button>
-            )}
-          </>
-        }
-      >
-        {selectedPayment && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-400">Invoice Number</p>
-                <p className="font-mono text-white">
-                  {selectedPayment.invoice_number || `#${selectedPayment.id.slice(0, 8)}`}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-400">Status</p>
-                {getStatusBadge((selectedPayment.payment_status || selectedPayment.status) as string)}
-              </div>
-            </div>
-
-            <div className="p-4 bg-dark-800 rounded-lg">
-              <p className="text-sm text-gray-400">Amount</p>
-              <p className="text-3xl font-bold text-white">
-                KES {selectedPayment.amount.toLocaleString()}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-400">Payment Method</p>
-                <p className="text-white capitalize">
-                  {selectedPayment.payment_method || selectedPayment.method}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-400">Database ID</p>
-                <p className="font-mono text-xs text-gray-400">{selectedPayment.id}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              {selectedPayment.payment_date && (
-                <div>
-                  <p className="text-sm text-gray-400">Payment Date</p>
-                  <p className="text-white">
-                    {new Date(selectedPayment.payment_date).toLocaleString()}
-                  </p>
-                </div>
-              )}
-              {selectedPayment.due_date && (
-                <div>
-                  <p className="text-sm text-gray-400">Due Date</p>
-                  <p className="text-white">
-                    {new Date(selectedPayment.due_date).toLocaleDateString()}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {selectedPayment.description && (
-              <div>
-                <p className="text-sm text-gray-400">Membership Duration</p>
-                <p className="text-white font-semibold">{selectedPayment.description}</p>
-              </div>
-            )}
-
-            {selectedPayment.transaction_id && (
-              <div>
-                <p className="text-sm text-gray-400">Transaction ID</p>
-                <p className="font-mono text-white">{selectedPayment.transaction_id}</p>
-              </div>
-            )}
-
-            {selectedPayment.mpesa_receipt_number && (
-              <div>
-                <p className="text-sm text-gray-400">M-Pesa Receipt Number</p>
-                <p className="font-mono text-white text-lg">{selectedPayment.mpesa_receipt_number}</p>
-              </div>
-            )}
-
-            {selectedPayment.notes && (
-              <div>
-                <p className="text-sm text-gray-400">Notes</p>
-                <p className="text-white">{selectedPayment.notes}</p>
-              </div>
-            )}
-
-            {/* Payment Actions for Pending Payments */}
-            {(selectedPayment.payment_status || selectedPayment.status) === 'pending' && (
-              <div className="border-t border-dark-700 pt-4 mt-6">
-                <h4 className="text-lg font-semibold text-white mb-4">Payment Actions</h4>
-                <div className="flex flex-col gap-3">
-                  {/* M-Pesa Payment Option */}
-                  {(selectedPayment.payment_method === 'mpesa' || !selectedPayment.payment_method) && (
-                    <Button
-                      onClick={() => {
-                        setMpesaForm({
-                          phone_number: selectedPayment.phone_number || '',
-                        });
-                        setShowMpesaModal(true);
-                      }}
-                      className="w-full"
-                    >
-                      Pay with M-Pesa
-                    </Button>
-                  )}
-
-                  {/* Mark as Paid Option */}
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      setConfirmData({
-                        payment_method: (selectedPayment.payment_method || selectedPayment.method) as PaymentMethod || 'cash',
-                        transaction_id: '',
-                        notes: '',
-                      });
-                      setShowConfirmModal(true);
-                    }}
-                    className="w-full"
-                  >
-                    Mark as Paid
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </Modal>
-
-      {/* M-Pesa Payment Modal */}
-      <Modal
-        isOpen={showMpesaModal}
-        onClose={() => {
-          setShowMpesaModal(false);
-          setMpesaForm({ phone_number: '' });
-        }}
-        title="Initiate M-Pesa Payment"
-        footer={
-          <>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setShowMpesaModal(false);
-                setMpesaForm({ phone_number: '' });
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleMpesaPayment}>Send Payment Prompt</Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          {selectedPayment && (
-            <>
-              <div className="p-4 bg-dark-800 rounded-lg">
-                <p className="text-sm text-gray-400">Amount</p>
-                <p className="text-2xl font-bold text-white">
-                  KES {selectedPayment.amount.toLocaleString()}
-                </p>
-              </div>
-              <Input
-                label="Phone Number (254...) *"
-                required
-                value={mpesaForm.phone_number}
-                onChange={(e) => setMpesaForm({ phone_number: e.target.value })}
-                placeholder="254712345678"
-              />
-              <p className="text-sm text-gray-400">
-                The client will receive an M-Pesa payment prompt on their phone. Once they enter
-                their PIN, the payment will be processed automatically.
-              </p>
-            </>
-          )}
-        </div>
-      </Modal>
+        payment={selectedPayment}
+        client={client}
+        onUpdate={loadPayments}
+      />
     </div>
   );
 };

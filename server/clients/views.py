@@ -85,6 +85,20 @@ class ClientViewSet(viewsets.ModelViewSet):
                 trainer=request.user,
                 **client_data
             )
+
+            # Automatically create a placeholder payment for the new client
+            from payments.models import Payment
+            from datetime import date, timedelta
+
+            Payment.objects.create(
+                client=client,
+                amount=0,  # Placeholder amount - trainer will update
+                payment_method='mpesa',
+                payment_status='pending',
+                description='Initial membership payment - Please update amount and due date',
+                due_date=date.today() + timedelta(days=7)  # Default to 7 days from now
+            )
+
         except Exception as e:
             return Response(
                 {'error': str(e)},
