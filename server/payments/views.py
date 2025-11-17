@@ -64,7 +64,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
     def list(self, request):
         """
-        List payments with filtering options
+        List payments with filtering options and pagination
 
         Query params:
         - status: Filter by payment status (pending, completed, failed, refunded)
@@ -72,6 +72,8 @@ class PaymentViewSet(viewsets.ModelViewSet):
         - overdue: Filter overdue payments (true/false)
         - date_from: Filter payments from this date
         - date_to: Filter payments to this date
+        - page: Page number (default: 1)
+        - page_size: Items per page (default: 20, max: 100)
         """
         payments = self.get_queryset()
 
@@ -105,6 +107,13 @@ class PaymentViewSet(viewsets.ModelViewSet):
         # Order by created date (newest first)
         payments = payments.order_by('-created_at')
 
+        # Use pagination
+        page = self.paginate_queryset(payments)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        # Fallback without pagination (shouldn't normally reach here)
         serializer = self.get_serializer(payments, many=True)
         return Response(serializer.data)
 
@@ -397,7 +406,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def overdue(self, request):
         """
-        Get all overdue payments
+        Get all overdue payments with pagination
 
         GET /api/payments/overdue/
         """
@@ -406,6 +415,12 @@ class PaymentViewSet(viewsets.ModelViewSet):
             payment_status='pending',
             due_date__lt=today
         ).order_by('due_date')
+
+        # Use pagination
+        page = self.paginate_queryset(overdue_payments)
+        if page is not None:
+            serializer = PaymentListSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
         serializer = PaymentListSerializer(overdue_payments, many=True)
         return Response(serializer.data)

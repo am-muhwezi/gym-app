@@ -16,6 +16,19 @@ DEBUG = config("DEBUG", cast=bool)
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.100.40', '*']  # '*' for development only
 
+# HTTPS/SSL Settings for production (when behind nginx/Apache reverse proxy)
+# This tells Django to trust the X-Forwarded-Proto header from the proxy
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Security settings for production (only when DEBUG is False)
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True  # Redirect all HTTP to HTTPS
+    SESSION_COOKIE_SECURE = True  # Send session cookies only over HTTPS
+    CSRF_COOKIE_SECURE = True  # Send CSRF cookies only over HTTPS
+    SECURE_HSTS_SECONDS = 31536000  # Enable HSTS for 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
 
 # Application definition
 
@@ -49,6 +62,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_PAGINATION_CLASS': 'gymapp.pagination.StandardResultsSetPagination',
+    'PAGE_SIZE': 20,  # Default page size (can be overridden per view)
 }
 
 # CORS Configuration
@@ -59,12 +74,21 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://192.168.100.40:3000",  # Local network access
     "http://192.168.100.40:5173",
+    # Production HTTPS origins
+    "https://trainrup.fit",
+    "https://www.trainrup.fit",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
 # For development, allow all origins (comment out in production)
 # CORS_ALLOW_ALL_ORIGINS = True
+
+# CSRF trusted origins for production
+CSRF_TRUSTED_ORIGINS = [
+    "https://trainrup.fit",
+    "https://www.trainrup.fit",
+]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

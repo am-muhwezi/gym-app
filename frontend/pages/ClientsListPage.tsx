@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { useClients } from '../context/ClientContext';
+import React, { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import { Client } from '../types';
+import LoadMore from '../components/ui/LoadMore';
+import { Client, PaginatedResponse } from '../types';
 import { clientService } from '../services';
+import { usePagination } from '../hooks/usePagination';
 
 const ClientCard: React.FC<{ client: Client }> = ({ client }) => {
     const fullName = client.full_name || `${client.first_name} ${client.last_name}`;
@@ -40,7 +41,26 @@ const ClientCard: React.FC<{ client: Client }> = ({ client }) => {
 }
 
 const ClientsListPage: React.FC = () => {
-    const { clients, loading, refreshClients } = useClients();
+    // Pagination hook
+    const fetchClients = useCallback(
+        async (page: number): Promise<PaginatedResponse<Client>> => {
+            return clientService.getClientsPaginated(page);
+        },
+        []
+    );
+
+    const {
+        items: clients,
+        loading,
+        pagination,
+        loadMore,
+        refresh: refreshClients,
+    } = usePagination<Client>({
+        fetchPage: fetchClients,
+        pageSize: 20,
+        initialLoad: true,
+    });
+
     const [showAddModal, setShowAddModal] = useState(false);
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -103,13 +123,16 @@ const ClientsListPage: React.FC = () => {
     };
     
 
-    if (loading) {
+    if (loading && clients.length === 0) {
         return (
             <div className="flex justify-center items-center h-64">
                 <p className="text-gray-400">Loading clients...</p>
             </div>
         );
     }
+
+    // Safety check to ensure clients is always an array
+    const safeClients = Array.isArray(clients) ? clients : [];
 
     return (
         <div>
@@ -120,17 +143,30 @@ const ClientsListPage: React.FC = () => {
                 </Button>
             </div>
 
-            {clients.length === 0 ? (
+            {safeClients.length === 0 ? (
                 <Card className="text-center py-12">
                     <p className="text-gray-400 mb-4">No clients yet</p>
                     <Button onClick={() => setShowAddModal(true)}>Add Your First Client</Button>
                 </Card>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                    {clients.map(client => (
-                        <ClientCard key={client.id} client={client} />
-                    ))}
-                </div>
+                <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                        {safeClients.map(client => (
+                            <ClientCard key={client.id} client={client} />
+                        ))}
+                    </div>
+
+                    {/* Load More Pagination */}
+                    <LoadMore
+                        currentCount={safeClients.length}
+                        totalCount={pagination.totalCount}
+                        currentPage={pagination.currentPage}
+                        totalPages={pagination.totalPages}
+                        onLoadMore={loadMore}
+                        loading={loading}
+                        itemName="clients"
+                    />
+                </>
             )}
 
             {/* Add Client Modal */}

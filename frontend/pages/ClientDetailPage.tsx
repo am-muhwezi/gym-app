@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useClients } from '../context/ClientContext';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
 import { Client, Goal, Payment, Log, ClientProgress, WorkoutRoutine } from '../types';
 import { clientService, goalService, paymentService, logService, progressService, workoutService, exportService } from '../services';
 import type { WorkoutPlan as WorkoutPlanType, Exercise as ExerciseType } from '../services/workoutService';
@@ -24,6 +25,7 @@ const ClientDetailPage: React.FC = () => {
     const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlanType[]>([]);
     const [loading, setLoading] = useState(true);
     const [showExportMenu, setShowExportMenu] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
 
     // Load client data
     useEffect(() => {
@@ -126,9 +128,12 @@ const ClientDetailPage: React.FC = () => {
             {/* Client Header */}
             <Card>
                 <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
+                    {/* Avatar */}
                     <div className="w-20 h-20 sm:w-24 sm:h-24 bg-brand-primary/20 rounded-full flex items-center justify-center text-brand-primary text-3xl sm:text-4xl font-bold">
                         {client.first_name.charAt(0)}{client.last_name.charAt(0)}
                     </div>
+
+                    {/* Client Info */}
                     <div className="text-center sm:text-left flex-1">
                         <h1 className="text-3xl sm:text-4xl font-bold text-white">
                             {client.full_name || `${client.first_name} ${client.last_name}`}
@@ -148,14 +153,34 @@ const ClientDetailPage: React.FC = () => {
                             </span>
                         </div>
                     </div>
-                    {/* Export Menu */}
-                    <div className="relative">
-                        <Button onClick={() => setShowExportMenu(!showExportMenu)}>
-                            Export Data
+
+                    {/* Buttons Container */}
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        {/* Edit Button */}
+                        <Button
+                            variant="secondary"
+                            onClick={() => {
+                                console.log('Edit button clicked');
+                                console.log('showEditModal before:', showEditModal);
+                                setShowEditModal(true);
+                                console.log('setShowEditModal called with true');
+                            }}
+                            className="w-full sm:w-auto"
+                        >
+                            Edit Info
                         </Button>
-                        {showExportMenu && (
-                            <div className="absolute right-0 mt-2 w-56 bg-dark-800 border border-dark-700 rounded-lg shadow-lg z-50">
-                                <div className="py-2">
+
+                        {/* Export Menu */}
+                        <div className="relative w-full sm:w-auto">
+                            <Button
+                                onClick={() => setShowExportMenu(!showExportMenu)}
+                                className="w-full sm:w-auto"
+                            >
+                                Export Data
+                            </Button>
+                            {showExportMenu && (
+                                <div className="absolute right-0 mt-2 w-56 bg-dark-800 border border-dark-700 rounded-lg shadow-lg z-50">
+                                    <div className="py-2">
                                     <button
                                         onClick={() => {
                                             exportService.exportProfile(client, 'json');
@@ -248,8 +273,9 @@ const ClientDetailPage: React.FC = () => {
                                         Export All Data (JSON)
                                     </button>
                                 </div>
-                            </div>
-                        )}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </Card>
@@ -1414,7 +1440,168 @@ const PaymentsTab: React.FC<{
                     </Card>
                 </div>
             )}
+
+            {/* Edit Client Modal */}
+            {(() => {
+                console.log('showEditModal state:', showEditModal);
+                console.log('client exists:', !!client);
+                return null;
+            })()}
+            {showEditModal && client && (
+                <EditClientModal
+                    client={client}
+                    onClose={() => {
+                        console.log('Closing edit modal');
+                        setShowEditModal(false);
+                    }}
+                    onSuccess={(updatedClient) => {
+                        console.log('Client updated:', updatedClient);
+                        setClient(updatedClient);
+                        setShowEditModal(false);
+                    }}
+                />
+            )}
         </div>
+    );
+};
+
+// Edit Client Modal Component
+const EditClientModal: React.FC<{
+    client: Client;
+    onClose: () => void;
+    onSuccess: (client: Client) => void;
+}> = ({ client, onClose, onSuccess }) => {
+    const [formData, setFormData] = useState({
+        first_name: client.first_name,
+        last_name: client.last_name,
+        email: client.email || '',
+        phone: client.phone,
+        gender: client.gender || '',
+        date_of_birth: client.date_of_birth || '',
+    });
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+
+        if (!formData.first_name || !formData.last_name || !formData.phone) {
+            setError('First name, last name, and phone are required');
+            return;
+        }
+
+        try {
+            setSubmitting(true);
+            const updatedClient = await clientService.updateClient(client.id, formData);
+            onSuccess(updatedClient);
+        } catch (err: any) {
+            setError(err.message || 'Failed to update client');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <Modal title="Edit Client Information" onClose={onClose} isOpen={true} size="lg">
+            <form onSubmit={handleSubmit} className="space-y-4">
+                {error && (
+                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                        {error}
+                    </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                            First Name *
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.first_name}
+                            onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                            className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Last Name *
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.last_name}
+                            onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                            className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                            required
+                        />
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                    <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                        placeholder="client@example.com"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Phone *
+                    </label>
+                    <input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                        placeholder="+254712345678"
+                        required
+                    />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Gender</label>
+                        <select
+                            value={formData.gender}
+                            onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                            className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                        >
+                            <option value="">Select Gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                            <option value="prefer_not_to_say">Prefer not to say</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Date of Birth
+                        </label>
+                        <input
+                            type="date"
+                            value={formData.date_of_birth}
+                            onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+                            max={new Date().toISOString().split('T')[0]}
+                            className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                        />
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4">
+                    <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
+                        Cancel
+                    </Button>
+                    <Button type="submit" disabled={submitting}>
+                        {submitting ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                </div>
+            </form>
+        </Modal>
     );
 };
 

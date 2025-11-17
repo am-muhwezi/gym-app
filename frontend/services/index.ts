@@ -13,3 +13,5 @@ export { logService } from './logService';
 export { workoutService } from './workoutService';
 export { exportService } from './exportService';
 export { generatePaymentReceipt, printReceipt } from './receiptService';
+export { bookingService } from './bookingService';
+export { analyticsService } from './analyticsService';
