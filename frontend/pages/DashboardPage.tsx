@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useClients } from '../context/ClientContext';
+import { useAuth } from '../context/AuthContext';
 import Card from '../components/ui/Card';
 import { useNavigate } from 'react-router-dom';
 import { goalService, paymentService } from '../services';
@@ -11,6 +12,7 @@ const DollarIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" hei
 
 const DashboardPage: React.FC = () => {
     const { clients } = useClients();
+    const { user } = useAuth();
     const navigate = useNavigate();
     const [stats, setStats] = useState({
         totalGoals: 0,
@@ -80,7 +82,9 @@ const DashboardPage: React.FC = () => {
 
     return (
         <div className="space-y-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">Welcome back, Trainer!</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">
+                Welcome, {user?.username || 'Trainer'}!
+            </h1>
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">

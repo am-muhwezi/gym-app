@@ -48,12 +48,27 @@ const ClientsListPage: React.FC = () => {
     const [phone, setPhone] = useState('');
     const [gender, setGender] = useState('');
     const [dob, setDob] = useState('');
+    const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
     const handleAddClient = async () => {
+        setError('');
+
         if (!firstName || !lastName || !email || !phone) {
-            alert('Please fill in all required fields');
+            setError('Please fill in all required fields');
             return;
+        }
+
+        // Validate DOB is not in the future
+        if (dob) {
+            const dobDate = new Date(dob);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            if (dobDate >= today) {
+                setError('Date of birth cannot be today or in the future');
+                return;
+            }
         }
 
         try {
@@ -78,9 +93,10 @@ const ClientsListPage: React.FC = () => {
             setPhone('');
             setGender('');
             setDob('');
+            setError('');
         } catch (error: any) {
             console.error('Error creating client:', error);
-            alert(`Failed to create client: ${error.message || 'Unknown error'}`);
+            setError(error.message || 'Failed to create client. Please try again.');
         } finally {
             setSubmitting(false);
         }
@@ -122,6 +138,13 @@ const ClientsListPage: React.FC = () => {
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
                     <Card className="w-full max-w-md mx-4">
                         <h2 className="text-xl sm:text-2xl font-bold mb-4">Add New Client</h2>
+
+                        {error && (
+                            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                                <p className="text-red-400 text-sm">{error}</p>
+                            </div>
+                        )}
+
                         <div className="space-y-4">
                             <input
                                 type="text"
@@ -170,6 +193,7 @@ const ClientsListPage: React.FC = () => {
                                 placeholder="Date of Birth (Optional)"
                                 value={dob}
                                 onChange={(e) => setDob(e.target.value)}
+                                max={new Date().toISOString().split('T')[0]}
                                 className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                             />
                         </div>
@@ -184,6 +208,7 @@ const ClientsListPage: React.FC = () => {
                                     setPhone('');
                                     setGender('');
                                     setDob('');
+                                    setError('');
                                 }}
                                 disabled={submitting}
                                 className="w-full sm:w-auto"
