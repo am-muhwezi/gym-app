@@ -8,10 +8,34 @@ import type { Client, ClientCreatePayload, PaginatedResponse } from '../types';
 
 export const clientService = {
   /**
-   * Get all clients for the authenticated trainer
+   * Get all clients for the authenticated trainer (handles pagination internally)
    */
   async getAllClients(): Promise<Client[]> {
-    return apiClient.get<Client[]>('/clients/');
+    // First, get the first page to know total pages
+    const firstPage = await apiClient.get<PaginatedResponse<Client>>('/clients/', {
+      params: { page: 1, page_size: 100 },
+    });
+
+    let allClients = [...firstPage.results];
+
+    // If there are more pages, fetch them all
+    if (firstPage.total_pages > 1) {
+      const pagePromises = [];
+      for (let page = 2; page <= firstPage.total_pages; page++) {
+        pagePromises.push(
+          apiClient.get<PaginatedResponse<Client>>('/clients/', {
+            params: { page, page_size: 100 },
+          })
+        );
+      }
+
+      const additionalPages = await Promise.all(pagePromises);
+      additionalPages.forEach(pageData => {
+        allClients = [...allClients, ...pageData.results];
+      });
+    }
+
+    return allClients;
   },
 
   /**

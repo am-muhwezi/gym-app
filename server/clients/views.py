@@ -47,11 +47,13 @@ class ClientViewSet(viewsets.ModelViewSet):
 
     def list(self, request):
         """
-        List clients for authenticated trainer
+        List clients for authenticated trainer with pagination
 
         Query params:
         - status: Filter by status (active, inactive, suspended)
         - search: Search by name, email, or phone
+        - page: Page number (default: 1)
+        - page_size: Items per page (default: 20, max: 100)
         """
         status_filter = request.query_params.get('status')
         search_term = request.query_params.get('search')
@@ -70,6 +72,13 @@ class ClientViewSet(viewsets.ModelViewSet):
                 Q(phone__icontains=search_term)
             )
 
+        # Use pagination
+        page = self.paginate_queryset(clients)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        # Fallback without pagination (shouldn't normally reach here)
         serializer = self.get_serializer(clients, many=True)
         return Response(serializer.data)
 

@@ -11,29 +11,50 @@ import type {
   PaymentMpesaPayload,
   PaymentReceipt,
   PaymentStatistics,
+  PaginatedResponse,
 } from '../types';
 
 export const paymentService = {
   /**
-   * Get all payments (optionally filtered by client, status)
+   * Get all payments (optionally filtered by client, status) - handles pagination internally
    */
   async getPayments(filters?: {
     client?: string;
     payment_status?: string;
     payment_method?: string;
   }): Promise<Payment[]> {
-    return apiClient.get<Payment[]>('/payments/', {
-      params: filters as any,
+    // First, get the first page to know total pages
+    const firstPage = await apiClient.get<PaginatedResponse<Payment>>('/payments/', {
+      params: { ...filters, page: 1, page_size: 100 } as any,
     });
+
+    let allPayments = [...firstPage.results];
+
+    // If there are more pages, fetch them all
+    if (firstPage.total_pages > 1) {
+      const pagePromises = [];
+      for (let page = 2; page <= firstPage.total_pages; page++) {
+        pagePromises.push(
+          apiClient.get<PaginatedResponse<Payment>>('/payments/', {
+            params: { ...filters, page, page_size: 100 } as any,
+          })
+        );
+      }
+
+      const additionalPages = await Promise.all(pagePromises);
+      additionalPages.forEach(pageData => {
+        allPayments = [...allPayments, ...pageData.results];
+      });
+    }
+
+    return allPayments;
   },
 
   /**
-   * Get all payments for a client
+   * Get all payments for a client - handles pagination internally
    */
   async getClientPayments(clientId: string): Promise<Payment[]> {
-    return apiClient.get<Payment[]>('/payments/', {
-      params: { client: clientId },
-    });
+    return this.getPayments({ client: clientId });
   },
 
   /**
@@ -99,10 +120,34 @@ export const paymentService = {
   },
 
   /**
-   * Get overdue payments
+   * Get overdue payments - handles pagination internally
    */
   async getOverduePayments(): Promise<Payment[]> {
-    return apiClient.get<Payment[]>('/payments/overdue/');
+    // First, get the first page to know total pages
+    const firstPage = await apiClient.get<PaginatedResponse<Payment>>('/payments/overdue/', {
+      params: { page: 1, page_size: 100 },
+    });
+
+    let allPayments = [...firstPage.results];
+
+    // If there are more pages, fetch them all
+    if (firstPage.total_pages > 1) {
+      const pagePromises = [];
+      for (let page = 2; page <= firstPage.total_pages; page++) {
+        pagePromises.push(
+          apiClient.get<PaginatedResponse<Payment>>('/payments/overdue/', {
+            params: { page, page_size: 100 },
+          })
+        );
+      }
+
+      const additionalPages = await Promise.all(pagePromises);
+      additionalPages.forEach(pageData => {
+        allPayments = [...allPayments, ...pageData.results];
+      });
+    }
+
+    return allPayments;
   },
 
   /**

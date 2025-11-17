@@ -264,6 +264,9 @@ export interface PaginatedResponse<T> {
   count: number;
   next: string | null;
   previous: string | null;
+  total_pages: number;
+  current_page: number;
+  page_size: number;
   results: T[];
 }
 
@@ -271,4 +274,190 @@ export interface ApiError {
   detail?: string;
   message?: string;
   [key: string]: any;
+}
+
+// ============ BOOKING TYPES ============
+export type BookingStatus = 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+export type SessionType = 'personal_training' | 'group_class' | 'consultation' | 'assessment' | 'virtual';
+
+export interface Booking {
+  id: string;
+  trainer: string;
+  trainer_name?: string;
+  client: string;
+  client_name?: string;
+  client_details?: Client;
+  session_type: SessionType;
+  session_type_display?: string;
+  title: string;
+  description?: string;
+  session_date: string;
+  start_time: string;
+  end_time: string;
+  duration_minutes: number;
+  location: string;
+  status: BookingStatus;
+  status_display?: string;
+  trainer_notes?: string;
+  client_notes?: string;
+  session_summary?: string;
+  client_rating?: number;
+  client_feedback?: string;
+  reminder_sent: boolean;
+  reminder_sent_at?: string;
+  is_upcoming: boolean;
+  is_past: boolean;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string;
+  cancelled_at?: string;
+  cancellation_reason?: string;
+}
+
+export interface BookingCreatePayload {
+  client: string;
+  session_type: SessionType;
+  title: string;
+  description?: string;
+  session_date: string;
+  start_time: string;
+  end_time: string;
+  duration_minutes: number;
+  location?: string;
+  trainer_notes?: string;
+}
+
+export interface BookingUpdatePayload {
+  session_type?: SessionType;
+  title?: string;
+  description?: string;
+  session_date?: string;
+  start_time?: string;
+  end_time?: string;
+  duration_minutes?: number;
+  location?: string;
+  status?: BookingStatus;
+  trainer_notes?: string;
+  client_notes?: string;
+  session_summary?: string;
+  client_rating?: number;
+  client_feedback?: string;
+  cancellation_reason?: string;
+}
+
+export interface Schedule {
+  id: string;
+  trainer: string;
+  weekday: number;
+  weekday_name?: string;
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RecurringBooking {
+  id: string;
+  trainer: string;
+  client: string;
+  client_name?: string;
+  session_type: SessionType;
+  session_type_display?: string;
+  title: string;
+  description?: string;
+  weekday: number;
+  weekday_name?: string;
+  start_time: string;
+  end_time: string;
+  duration_minutes: number;
+  location: string;
+  frequency: 'weekly' | 'biweekly' | 'monthly';
+  frequency_display?: string;
+  start_date: string;
+  end_date?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BookingStatistics {
+  total_bookings: number;
+  upcoming_bookings: number;
+  completed_bookings: number;
+  cancelled_bookings: number;
+  todays_bookings: number;
+  this_week_bookings: number;
+  this_week_completed: number;
+  this_month_bookings: number;
+  this_month_completed: number;
+}
+
+// ============ ANALYTICS TYPES ============
+export interface DashboardAnalytics {
+  period: 'week' | 'month' | 'year';
+  start_date: string;
+  end_date: string;
+  clients: {
+    total_clients: number;
+    active_clients: number;
+    inactive_clients: number;
+    new_clients_this_period: number;
+  };
+  revenue: {
+    total_revenue: number;
+    completed_payments: number;
+    pending_payments: number;
+    pending_amount: number;
+    overdue_payments: number;
+    overdue_amount: number;
+  };
+  bookings: {
+    total_sessions: number;
+    completed_sessions: number;
+    upcoming_sessions: number;
+    cancelled_sessions: number;
+    average_rating: number;
+  };
+  goals: {
+    total_goals: number;
+    active_goals: number;
+    completed_goals: number;
+    completion_rate: number;
+  };
+}
+
+export interface RevenueTrend {
+  period: string;
+  revenue: number;
+  count: number;
+}
+
+export interface ClientRetentionData {
+  total_clients: number;
+  active_clients: number;
+  inactive_clients: number;
+  retention_rate: number;
+  client_lifetime: Array<{
+    client_name: string;
+    days_active: number;
+    total_revenue: number;
+    status: string;
+  }>;
+}
+
+export interface PerformanceMetrics {
+  this_month: {
+    revenue: number;
+    new_clients: number;
+  };
+  last_month: {
+    revenue: number;
+    new_clients: number;
+  };
+  growth: {
+    revenue_growth_percentage: number;
+    client_growth_percentage: number;
+  };
 }

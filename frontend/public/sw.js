@@ -1,5 +1,5 @@
-const CACHE_NAME = 'trainrup-v1';
-const RUNTIME_CACHE = 'trainrup-runtime';
+const CACHE_NAME = 'trainrup-v2';
+const RUNTIME_CACHE = 'trainrup-runtime-v2';
 
 // Assets to cache on install
 const PRECACHE_URLS = [
@@ -62,7 +62,33 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For other requests, try cache first, then network
+  // For HTML and JS files, use network-first strategy
+  if (event.request.url.endsWith('.html') ||
+      event.request.url.endsWith('.js') ||
+      event.request.url.endsWith('.jsx') ||
+      event.request.url.endsWith('.tsx') ||
+      event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Cache the new response
+          if (response.status === 200) {
+            const responseToCache = response.clone();
+            caches.open(RUNTIME_CACHE).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          // If network fails, try to serve from cache
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+
+  // For other requests (CSS, images, etc.), try cache first, then network
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
