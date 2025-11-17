@@ -743,7 +743,7 @@ const PaymentsPage: React.FC = () => {
           <div className="space-y-6" id="receipt-print">
             <div className="text-center border-b border-dark-700 pb-4">
               <h2 className="text-2xl font-bold text-white">PAYMENT RECEIPT</h2>
-              <p className="text-brand-primary text-lg mt-2">GymPal Fitness</p>
+              <p className="text-brand-primary text-lg mt-2">TrainrUp</p>
               <p className="text-gray-400 text-sm">Trainer: {receipt.trainer_name}</p>
             </div>
 

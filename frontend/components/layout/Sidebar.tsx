@@ -61,7 +61,7 @@ const Sidebar: React.FC = () => {
             >
                 <div className="h-16 flex items-center justify-center px-4 border-b border-dark-700">
                     <DumbbellIcon />
-                    <h1 className="text-xl font-bold ml-2 text-white">GymPal</h1>
+                    <h1 className="text-xl font-bold ml-2 text-white">TrainrUp</h1>
                 </div>
                 <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
                     {navLinks.map(({ to, icon, label }) => (
@@ -81,7 +81,7 @@ const Sidebar: React.FC = () => {
                     ))}
                 </nav>
                 <div className="p-4 border-t border-dark-700">
-                    <p className="text-xs text-gray-500">&copy; 2024 GymPal Inc.</p>
+                    <p className="text-xs text-gray-500">&copy; 2024 TrainrUp</p>
                 </div>
             </aside>
         </>

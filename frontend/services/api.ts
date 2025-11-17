@@ -3,7 +3,28 @@
  * Centralized API client for all backend communication
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://192.168.100.40:3000/api';
+// Auto-detect protocol based on current page for security
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+
+  // In production, use the same protocol as the current page
+  if (typeof window !== 'undefined') {
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+
+    // If on trainrup.fit domain, use production API
+    if (hostname.includes('trainrup.fit')) {
+      return `${protocol}//${hostname}/api`;
+    }
+  }
+
+  // Fallback to localhost for development
+  return 'http://localhost:8000/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, string | number>;

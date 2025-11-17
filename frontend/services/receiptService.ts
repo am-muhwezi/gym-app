@@ -122,7 +122,7 @@ export const generatePaymentReceipt = (payment: Payment, client: Client): string
       <div class="section">
         <div class="section-title">Processed By</div>
         <div class="admin-info">Admin:</div>
-        <div class="admin-info" style="margin-top: 4px;">Email: admin@gympal.com</div>
+        <div class="admin-info" style="margin-top: 4px;">Email: admin@trainrup.com</div>
         <div class="timestamp">
           <div class="timestamp-item">Date: ${paymentDate.toLocaleDateString('en-KE')}</div>
           <div class="timestamp-item">Time: ${paymentDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</div>
