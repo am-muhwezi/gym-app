@@ -23,31 +23,37 @@ const DashboardPage: React.FC = () => {
     useEffect(() => {
         const loadStats = async () => {
             try {
-                // Fetch all goals and payments for stats
-                const allGoals: Goal[] = [];
+                // Aggregate data from clients (goals are already included in client data)
+                let totalGoalsCount = 0;
+                let activeGoalsCount = 0;
                 const allPayments: Payment[] = [];
 
-                // Fetch data for each client
+                // Fetch payments for each client
                 for (const client of clients) {
                     try {
-                        const [goals, payments] = await Promise.all([
-                            goalService.getGoalsByClient(client.id).catch(() => []),
-                            paymentService.getPaymentsByClient(client.id).catch(() => []),
-                        ]);
-                        allGoals.push(...goals);
+                        // Count goals from client data (already fetched)
+                        if ((client as any).goals) {
+                            const clientGoals = (client as any).goals as Goal[];
+                            totalGoalsCount += clientGoals.length;
+                            activeGoalsCount += clientGoals.filter((g: Goal) =>
+                                g.status === 'active' || (!g.achieved && !g.status)
+                            ).length;
+                        }
+
+                        // Fetch payments
+                        const payments = await paymentService.getClientPayments(client.id).catch(() => []);
                         allPayments.push(...payments);
                     } catch (error) {
                         console.error(`Error fetching data for client ${client.id}:`, error);
                     }
                 }
 
-                const activeGoals = allGoals.filter(g => g.status === 'active').length;
                 const pendingPayments = allPayments.filter(p => p.status === 'pending');
                 const totalPending = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
 
                 setStats({
-                    totalGoals: allGoals.length,
-                    activeGoals,
+                    totalGoals: totalGoalsCount,
+                    activeGoals: activeGoalsCount,
                     pendingPayments: pendingPayments.length,
                     totalPending,
                 });

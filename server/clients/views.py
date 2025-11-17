@@ -7,8 +7,12 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Client
-from .serializers import ClientSerializer, ClientListSerializer, ClientCreateUpdateSerializer
+from .models import Client, ActivityLog, ProgressMeasurement
+from .serializers import (
+    ClientSerializer, ClientListSerializer, ClientCreateUpdateSerializer,
+    ActivityLogSerializer, ActivityLogCreateSerializer,
+    ProgressMeasurementSerializer, ProgressMeasurementCreateSerializer
+)
 from .services import ClientService
 
 
@@ -479,4 +483,136 @@ class ClientViewSet(viewsets.ModelViewSet):
             return Response(
                 {'error': 'Exercise not found'},
                 status=status.HTTP_404_NOT_FOUND
+            )
+
+    @action(detail=False, methods=['get', 'post'], url_path='logs')
+    def logs(self, request):
+        """
+        Get all activity logs or create a new one
+
+        GET /api/clients/logs/?client=8
+        POST /api/clients/logs/
+        Body: {
+            "client": 8,
+            "date": "2025-11-17",
+            "notes": "Great workout today",
+            "performance_rating": 4
+        }
+        """
+        if request.method == 'GET':
+            client_id = request.query_params.get('client')
+
+            if client_id:
+                try:
+                    client = self.get_queryset().get(pk=client_id)
+                    logs = client.activity_logs.all().order_by('-date')
+                except Client.DoesNotExist:
+                    return Response(
+                        {'error': 'Client not found'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+            else:
+                # Get logs for all clients of this trainer
+                logs = ActivityLog.objects.filter(
+                    client__trainer=request.user
+                ).order_by('-date')
+
+            serializer = ActivityLogSerializer(logs, many=True)
+            return Response(serializer.data)
+
+        elif request.method == 'POST':
+            client_id = request.data.get('client')
+
+            if not client_id:
+                return Response(
+                    {'error': 'client is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            try:
+                client = self.get_queryset().get(pk=client_id)
+            except Client.DoesNotExist:
+                return Response(
+                    {'error': 'Client not found'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            serializer = ActivityLogCreateSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+
+            log = ActivityLog.objects.create(
+                client=client,
+                **serializer.validated_data
+            )
+
+            return Response(
+                ActivityLogSerializer(log).data,
+                status=status.HTTP_201_CREATED
+            )
+
+    @action(detail=False, methods=['get', 'post'], url_path='progress')
+    def progress(self, request):
+        """
+        Get all progress measurements or create a new one
+
+        GET /api/clients/progress/?client=8
+        POST /api/clients/progress/
+        Body: {
+            "client": 8,
+            "measurement_type": "weight",
+            "value": 75.5,
+            "unit": "kg",
+            "notes": "Morning weight after breakfast",
+            "measured_at": "2025-11-17"
+        }
+        """
+        if request.method == 'GET':
+            client_id = request.query_params.get('client')
+
+            if client_id:
+                try:
+                    client = self.get_queryset().get(pk=client_id)
+                    measurements = client.progress_measurements.all().order_by('-measured_at')
+                except Client.DoesNotExist:
+                    return Response(
+                        {'error': 'Client not found'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+            else:
+                # Get measurements for all clients of this trainer
+                measurements = ProgressMeasurement.objects.filter(
+                    client__trainer=request.user
+                ).order_by('-measured_at')
+
+            serializer = ProgressMeasurementSerializer(measurements, many=True)
+            return Response(serializer.data)
+
+        elif request.method == 'POST':
+            client_id = request.data.get('client')
+
+            if not client_id:
+                return Response(
+                    {'error': 'client is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            try:
+                client = self.get_queryset().get(pk=client_id)
+            except Client.DoesNotExist:
+                return Response(
+                    {'error': 'Client not found'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            serializer = ProgressMeasurementCreateSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+
+            measurement = ProgressMeasurement.objects.create(
+                client=client,
+                **serializer.validated_data
+            )
+
+            return Response(
+                ProgressMeasurementSerializer(measurement).data,
+                status=status.HTTP_201_CREATED
             )

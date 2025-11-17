@@ -28,6 +28,7 @@ const SignupPage: React.FC = () => {
         password: '',
         confirmPassword: '',
     });
+    const [countryCode, setCountryCode] = useState('+254'); // Default to Kenya
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -60,6 +61,11 @@ const SignupPage: React.FC = () => {
 
         setLoading(true);
         try {
+            // Combine country code with phone number if not already included
+            if (!formData.phone_number.startsWith('+')) {
+                formData.phone_number = `${countryCode}${formData.phone_number}`;
+            }
+
             await signup({
                 username: formData.username,
                 email: formData.email,
@@ -68,20 +74,7 @@ const SignupPage: React.FC = () => {
             });
             navigate('/dashboard');
         } catch (err: any) {
-            const errorData = err.response?.data;
-            if (errorData) {
-                if (errorData.username) {
-                    setError(errorData.username[0]);
-                } else if (errorData.email) {
-                    setError(errorData.email[0]);
-                } else if (errorData.phone_number) {
-                    setError(errorData.phone_number[0]);
-                } else {
-                    setError('Failed to create account. Please try again.');
-                }
-            } else {
-                setError('Failed to create account. Please try again.');
-            }
+            setError(err.message || 'Failed to create account. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -138,15 +131,32 @@ const SignupPage: React.FC = () => {
 
                         <div>
                             <label className="block text-sm text-gray-400 mb-2">Phone Number *</label>
-                            <input
-                                type="tel"
-                                name="phone_number"
-                                value={formData.phone_number}
-                                onChange={handleChange}
-                                className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700 focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                                placeholder="+254712345678"
-                                disabled={loading}
-                            />
+                            <div className="flex gap-2">
+                                <select
+                                    value={countryCode}
+                                    onChange={(e) => setCountryCode(e.target.value)}
+                                    className="p-3 bg-dark-800 text-white rounded-lg border border-dark-700 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                                    disabled={loading}
+                                >
+                                    <option value="+254">🇰🇪 +254</option>
+                                    <option value="+1">🇺🇸 +1</option>
+                                    <option value="+44">🇬🇧 +44</option>
+                                    <option value="+91">🇮🇳 +91</option>
+                                    <option value="+234">🇳🇬 +234</option>
+                                    <option value="+27">🇿🇦 +27</option>
+                                    <option value="+255">🇹🇿 +255</option>
+                                    <option value="+256">🇺🇬 +256</option>
+                                </select>
+                                <input
+                                    type="tel"
+                                    name="phone_number"
+                                    value={formData.phone_number}
+                                    onChange={handleChange}
+                                    className="flex-1 p-3 bg-dark-800 text-white rounded-lg border border-dark-700 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                                    placeholder="712345678"
+                                    disabled={loading}
+                                />
+                            </div>
                         </div>
 
                         <div>

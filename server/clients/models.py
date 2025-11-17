@@ -29,8 +29,8 @@ class Client(models.Model):
     # Basic Info
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    email = models.EmailField(max_length=255, unique=True)
-    phone = models.CharField(max_length=20, unique=True)
+    email = models.EmailField(max_length=255)
+    phone = models.CharField(max_length=20)
     dob = models.DateField(null=True, blank=True, verbose_name="Date of Birth")
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True)
     notes = models.TextField(blank=True)
@@ -49,6 +49,18 @@ class Client(models.Model):
         indexes = [
             models.Index(fields=['trainer', 'status']),
             models.Index(fields=['email']),
+        ]
+        # Ensure a trainer can't add the same client twice
+        # But different trainers can have clients with same email/phone
+        constraints = [
+            models.UniqueConstraint(
+                fields=['trainer', 'email'],
+                name='unique_trainer_client_email'
+            ),
+            models.UniqueConstraint(
+                fields=['trainer', 'phone'],
+                name='unique_trainer_client_phone'
+            ),
         ]
         verbose_name = 'Client'
         verbose_name_plural = 'Clients'
@@ -93,6 +105,7 @@ class Goal(models.Model):
     description = models.TextField()
     target_value = models.CharField(max_length=100, blank=True, default='')
     current_value = models.CharField(max_length=100, blank=True, default='')
+    starting_value = models.CharField(max_length=100, blank=True, default='')  # New field to track starting point
     target_date = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     achieved = models.BooleanField(default=False)  # Kept for backward compatibility
@@ -110,6 +123,10 @@ class Goal(models.Model):
         return f"Goal for {self.client.full_name}: {self.title or self.description[:30]}..."
 
     def save(self, *args, **kwargs):
+        # Auto-set starting_value if not provided and current_value exists
+        if not self.starting_value and self.current_value:
+            self.starting_value = self.current_value
+
         # Auto-update status based on achieved flag for backward compatibility
         if self.achieved and self.status == 'active':
             self.status = 'completed'
@@ -163,3 +180,71 @@ class Exercise(models.Model):
 
     def __str__(self):
         return f"Exercise in {self.workout_plan.name}: {self.name}"
+
+
+class ActivityLog(models.Model):
+    """ActivityLog Model - Daily activity logs for clients"""
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.CASCADE,
+        related_name='activity_logs'
+    )
+    date = models.DateField()
+    notes = models.TextField(blank=True)
+    performance_rating = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text='Rating from 1-5'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date', '-created_at']
+        unique_together = ['client', 'date']
+        verbose_name = 'Activity Log'
+        verbose_name_plural = 'Activity Logs'
+
+    def __str__(self):
+        return f"Activity log for {self.client.full_name} on {self.date}"
+
+
+class ProgressMeasurement(models.Model):
+    """ProgressMeasurement Model - Bio/Progress tracking for clients"""
+    MEASUREMENT_TYPE_CHOICES = (
+        ('weight', 'Weight'),
+        ('body_fat', 'Body Fat %'),
+        ('muscle_mass', 'Muscle Mass'),
+        ('chest', 'Chest'),
+        ('waist', 'Waist'),
+        ('hips', 'Hips'),
+        ('arms', 'Arms'),
+        ('thighs', 'Thighs'),
+        ('other', 'Other'),
+    )
+
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.CASCADE,
+        related_name='progress_measurements'
+    )
+    measurement_type = models.CharField(max_length=20, choices=MEASUREMENT_TYPE_CHOICES)
+    value = models.DecimalField(max_digits=6, decimal_places=2)
+    unit = models.CharField(max_length=20, default='kg')
+    notes = models.TextField(blank=True)
+    measured_at = models.DateField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-measured_at', '-created_at']
+        verbose_name = 'Progress Measurement'
+        verbose_name_plural = 'Progress Measurements'
+        indexes = [
+            models.Index(fields=['client', 'measurement_type', '-measured_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.client.full_name} - {self.measurement_type}: {self.value}{self.unit} on {self.measured_at}"

@@ -79,7 +79,27 @@ class ApiClient {
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || errorData.message || `HTTP Error: ${response.status}`);
+
+      // Extract user-friendly error message
+      let errorMessage = '';
+
+      // Check for field-specific errors (Django format)
+      if (typeof errorData === 'object' && !errorData.detail && !errorData.message) {
+        // Get the first field error
+        for (const [field, messages] of Object.entries(errorData)) {
+          if (Array.isArray(messages) && messages.length > 0) {
+            errorMessage = messages[0];
+            break;
+          }
+        }
+      }
+
+      // Fallback to detail or message
+      if (!errorMessage) {
+        errorMessage = errorData.detail || errorData.message || `HTTP Error: ${response.status}`;
+      }
+
+      throw new Error(errorMessage);
     }
 
     const contentType = response.headers.get('content-type');

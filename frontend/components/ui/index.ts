@@ -12,3 +12,4 @@ export { default as Modal } from './Modal';
 export { default as Badge } from './Badge';
 export { default as ProgressBar } from './ProgressBar';
 export { default as StatCard } from './StatCard';
+export { default as Toast } from './Toast';

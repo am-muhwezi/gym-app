@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Goal, GoalCreatePayload, GoalType } from '../../types';
 import { Card, Button, Modal, Input, Select, TextArea, Badge, ProgressBar } from '../ui';
 import { goalService } from '../../services';
+import { useToast } from '../../context/ToastContext';
 
 interface GoalsManagerProps {
   clientId: string;
@@ -28,8 +29,10 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ clientId }) => {
     description: '',
     target_value: '',
     current_value: '',
+    starting_value: '',
     target_date: '',
   });
+  const { showSuccess, showError } = useToast();
 
   useEffect(() => {
     loadGoals();
@@ -49,11 +52,32 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ clientId }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate target date is in the future
+    if (formData.target_date) {
+      const targetDate = new Date(formData.target_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (targetDate <= today) {
+        showError('Target date must be in the future');
+        return;
+      }
+    }
+
     try {
+      // Set starting_value to current_value if not set
+      const goalData = {
+        ...formData,
+        starting_value: formData.starting_value || formData.current_value,
+      };
+
       if (editingGoal) {
-        await goalService.updateGoal(clientId, editingGoal.id, formData);
+        await goalService.updateGoal(clientId, editingGoal.id, goalData);
+        showSuccess('Goal updated successfully!');
       } else {
-        await goalService.createGoal(clientId, formData);
+        await goalService.createGoal(clientId, goalData);
+        showSuccess('Goal created successfully!');
       }
       setShowAddModal(false);
       setEditingGoal(null);
@@ -61,7 +85,13 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ clientId }) => {
       loadGoals();
     } catch (error: any) {
       console.error('Error saving goal:', error);
-      alert(`Failed to save goal: ${error.message || 'Please try again.'}`);
+      // Try to parse backend error
+      try {
+        const errorData = await error.response?.json();
+        showError(errorData || error.message || 'Failed to save goal');
+      } catch {
+        showError(error.message || 'Failed to save goal. Please try again.');
+      }
     }
   };
 
@@ -73,6 +103,7 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ clientId }) => {
       description: goal.description,
       target_value: goal.target_value || '',
       current_value: goal.current_value || '',
+      starting_value: goal.starting_value || '',
       target_date: goal.target_date || '',
     });
     setShowAddModal(true);
@@ -81,10 +112,11 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ clientId }) => {
   const handleComplete = async (goalId: string, currentStatus: boolean) => {
     try {
       await goalService.toggleGoalAchieved(clientId, goalId, !currentStatus);
+      showSuccess(currentStatus ? 'Goal marked as incomplete' : 'Goal completed!');
       loadGoals();
     } catch (error: any) {
       console.error('Error updating goal:', error);
-      alert(`Failed to update goal: ${error.message}`);
+      showError(error.message || 'Failed to update goal');
     }
   };
 
@@ -92,10 +124,11 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ clientId }) => {
     if (confirm('Are you sure you want to delete this goal?')) {
       try {
         await goalService.deleteGoal(clientId, goalId);
+        showSuccess('Goal deleted successfully');
         loadGoals();
       } catch (error: any) {
         console.error('Error deleting goal:', error);
-        alert('Delete feature not implemented in backend yet.');
+        showError('Delete feature not implemented in backend yet.');
       }
     }
   };
@@ -107,6 +140,7 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ clientId }) => {
       description: '',
       target_value: '',
       current_value: '',
+      starting_value: '',
       target_date: '',
     });
   };
@@ -137,10 +171,56 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ clientId }) => {
           <h3 className="text-xl font-semibold mb-4">Active Goals</h3>
           <div className="space-y-4">
             {activeGoals.map((goal) => {
-              const progress =
-                goal.current_value && goal.target_value
-                  ? (parseFloat(goal.current_value) / parseFloat(goal.target_value)) * 100
-                  : 0;
+              // Calculate progress based on goal type
+              let progress = 0;
+              let progressText = '';
+
+              if (goal.current_value && goal.target_value) {
+                const current = parseFloat(goal.current_value.replace(/[^\d.-]/g, ''));
+                const target = parseFloat(goal.target_value.replace(/[^\d.-]/g, ''));
+
+                // Handle starting_value - check if it exists and is not empty
+                let starting = current;
+                if (goal.starting_value && goal.starting_value.trim() !== '') {
+                  const parsedStarting = parseFloat(goal.starting_value.replace(/[^\d.-]/g, ''));
+                  if (!isNaN(parsedStarting)) {
+                    starting = parsedStarting;
+                  }
+                }
+
+                // For weight loss, rehabilitation, or any goal where we decrease values
+                const isDecreasingGoal = ['weight_loss', 'rehabilitation'].includes(goal.goal_type);
+
+                if (isDecreasingGoal) {
+                  // For decreasing goals: Progress = (starting - current) / (starting - target) * 100
+                  const totalDistance = starting - target;
+                  const coveredDistance = starting - current;
+
+                  if (totalDistance > 0) {
+                    progress = Math.min(100, Math.max(0, (coveredDistance / totalDistance) * 100));
+                    progressText = `${coveredDistance.toFixed(1)} / ${totalDistance.toFixed(1)} lost`;
+                  } else if (current <= target) {
+                    progress = 100;
+                    progressText = 'Goal achieved!';
+                  } else {
+                    progressText = `${Math.abs(totalDistance).toFixed(1)} to lose`;
+                  }
+                } else {
+                  // For increasing goals (muscle_gain, strength, endurance, etc.)
+                  const totalDistance = target - starting;
+                  const coveredDistance = current - starting;
+
+                  if (totalDistance > 0) {
+                    progress = Math.min(100, Math.max(0, (coveredDistance / totalDistance) * 100));
+                    progressText = `${coveredDistance.toFixed(1)} / ${totalDistance.toFixed(1)} gained`;
+                  } else if (current >= target) {
+                    progress = 100;
+                    progressText = 'Goal achieved!';
+                  } else {
+                    progressText = `${Math.abs(totalDistance).toFixed(1)} to gain`;
+                  }
+                }
+              }
 
               return (
                 <Card key={goal.id}>
@@ -299,6 +379,7 @@ const GoalsManager: React.FC<GoalsManagerProps> = ({ clientId }) => {
             type="date"
             value={formData.target_date}
             onChange={(e) => setFormData({ ...formData, target_date: e.target.value })}
+            min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
           />
         </form>
       </Modal>

@@ -11,7 +11,7 @@ export const logService = {
    * Get all logs for a client
    */
   async getClientLogs(clientId: string): Promise<Log[]> {
-    return apiClient.get<Log[]>('/logs/', {
+    return apiClient.get<Log[]>('/clients/logs/', {
       params: { client: clientId },
     });
   },
@@ -31,14 +31,14 @@ export const logService = {
    * Get a single log
    */
   async getLog(logId: string): Promise<Log> {
-    return apiClient.get<Log>(`/logs/${logId}/`);
+    return apiClient.get<Log>(`/clients/logs/${logId}/`);
   },
 
   /**
    * Create a new log
    */
   async createLog(clientId: string, data: LogCreatePayload): Promise<Log> {
-    return apiClient.post<Log>('/logs/', {
+    return apiClient.post<Log>('/clients/logs/', {
       ...data,
       client: clientId,
     });
@@ -48,14 +48,14 @@ export const logService = {
    * Update a log
    */
   async updateLog(logId: string, data: Partial<LogCreatePayload>): Promise<Log> {
-    return apiClient.patch<Log>(`/logs/${logId}/`, data);
+    return apiClient.patch<Log>(`/clients/logs/${logId}/`, data);
   },
 
   /**
    * Delete a log
    */
   async deleteLog(logId: string): Promise<void> {
-    return apiClient.delete<void>(`/logs/${logId}/`);
+    return apiClient.delete<void>(`/clients/logs/${logId}/`);
   },
 
   /**

@@ -15,10 +15,40 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserCreationSerialzer(serializers.ModelSerializer):
     """Serializer for user signup/registration"""
-    username = serializers.CharField(max_length=30)
-    email = serializers.EmailField(max_length=80)
-    phone_number = PhoneNumberField(allow_null=False, allow_blank=False)
-    password = serializers.CharField(min_length=6, write_only=True)
+    username = serializers.CharField(
+        max_length=30,
+        error_messages={
+            'required': 'Username is required',
+            'blank': 'Username cannot be blank',
+            'max_length': 'Username must be 30 characters or less'
+        }
+    )
+    email = serializers.EmailField(
+        max_length=80,
+        error_messages={
+            'required': 'Email is required',
+            'blank': 'Email cannot be blank',
+            'invalid': 'Enter a valid email address'
+        }
+    )
+    phone_number = PhoneNumberField(
+        allow_null=False,
+        allow_blank=False,
+        error_messages={
+            'required': 'Phone number is required',
+            'blank': 'Phone number cannot be blank',
+            'invalid': 'Enter a valid phone number'
+        }
+    )
+    password = serializers.CharField(
+        min_length=6,
+        write_only=True,
+        error_messages={
+            'required': 'Password is required',
+            'blank': 'Password cannot be blank',
+            'min_length': 'Password must be at least 6 characters'
+        }
+    )
     user_type = serializers.ChoiceField(choices=User.USER_TYPES, default='trainer')
 
     class Meta:

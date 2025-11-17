@@ -2,6 +2,7 @@ import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ClientProvider } from './context/ClientContext';
+import { ToastProvider } from './context/ToastContext';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import LandingPage from './pages/LandingPage';
@@ -52,8 +53,9 @@ const App: React.FC = () => {
   return (
     <HashRouter>
       <AuthProvider>
-        <ClientProvider>
-          <Routes>
+        <ToastProvider>
+          <ClientProvider>
+            <Routes>
             {/* Public Routes */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
@@ -128,8 +130,9 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-          </Routes>
-        </ClientProvider>
+            </Routes>
+          </ClientProvider>
+        </ToastProvider>
       </AuthProvider>
     </HashRouter>
   );

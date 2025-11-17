@@ -11,7 +11,7 @@ export const progressService = {
    * Get all progress records for a client
    */
   async getClientProgress(clientId: string): Promise<ClientProgress[]> {
-    return apiClient.get<ClientProgress[]>('/progress/', {
+    return apiClient.get<ClientProgress[]>('/clients/progress/', {
       params: { client: clientId },
     });
   },
@@ -28,14 +28,14 @@ export const progressService = {
    * Get a single progress record
    */
   async getProgress(progressId: string): Promise<ClientProgress> {
-    return apiClient.get<ClientProgress>(`/progress/${progressId}/`);
+    return apiClient.get<ClientProgress>(`/clients/progress/${progressId}/`);
   },
 
   /**
    * Create a new progress record
    */
   async createProgress(clientId: string, data: ProgressCreatePayload): Promise<ClientProgress> {
-    return apiClient.post<ClientProgress>('/progress/', {
+    return apiClient.post<ClientProgress>('/clients/progress/', {
       ...data,
       client: clientId,
     });
@@ -48,14 +48,14 @@ export const progressService = {
     progressId: string,
     data: Partial<ProgressCreatePayload>
   ): Promise<ClientProgress> {
-    return apiClient.patch<ClientProgress>(`/progress/${progressId}/`, data);
+    return apiClient.patch<ClientProgress>(`/clients/progress/${progressId}/`, data);
   },
 
   /**
    * Delete a progress record
    */
   async deleteProgress(progressId: string): Promise<void> {
-    return apiClient.delete<void>(`/progress/${progressId}/`);
+    return apiClient.delete<void>(`/clients/progress/${progressId}/`);
   },
 
   /**

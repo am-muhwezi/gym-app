@@ -52,8 +52,10 @@ export interface Goal {
   description: string;
   target_value?: string;
   current_value?: string;
+  starting_value?: string;
   target_date?: string;
   status: GoalStatus;
+  achieved?: boolean;
   created_at: string;
   updated_at: string;
   completed_at?: string;
@@ -65,6 +67,7 @@ export interface GoalCreatePayload {
   description: string;
   target_value?: string;
   current_value?: string;
+  starting_value?: string;
   target_date?: string;
 }
 

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Client, Goal, WorkoutPlan, Exercise
+from .models import Client, Goal, WorkoutPlan, Exercise, ActivityLog, ProgressMeasurement
 
 
 class GoalSerializer(serializers.ModelSerializer):
@@ -19,6 +19,7 @@ class GoalSerializer(serializers.ModelSerializer):
             'description',
             'target_value',
             'current_value',
+            'starting_value',
             'target_date',
             'status',
             'status_display',
@@ -41,6 +42,7 @@ class GoalCreateSerializer(serializers.ModelSerializer):
             'description',
             'target_value',
             'current_value',
+            'starting_value',
             'target_date',
             'status',
             'achieved'
@@ -152,7 +154,7 @@ class ClientSerializer(serializers.ModelSerializer):
 
     def get_active_goals_count(self, obj):
         """Count of active (not achieved) goals"""
-        return obj.goals.filter(achieved=False).count()
+        return obj.goals.filter(status='active').count()
 
     def get_payment_summary(self, obj):
         """Get payment summary for client"""
@@ -201,17 +203,31 @@ class ClientSerializer(serializers.ModelSerializer):
         return ClientService.check_membership_expiry(obj)
 
     def validate_email(self, value):
-        """Validate email is unique (excluding current instance on update)"""
+        """Validate email is unique per trainer (excluding current instance on update)"""
         instance = self.instance
-        if Client.objects.filter(email=value).exclude(pk=instance.pk if instance else None).exists():
-            raise serializers.ValidationError("A client with this email already exists.")
+        request = self.context.get('request')
+        trainer = request.user if request else None
+
+        queryset = Client.objects.filter(email=value, trainer=trainer)
+        if instance:
+            queryset = queryset.exclude(pk=instance.pk)
+
+        if queryset.exists():
+            raise serializers.ValidationError("You already have a client with this email.")
         return value
 
     def validate_phone(self, value):
-        """Validate phone is unique (excluding current instance on update)"""
+        """Validate phone is unique per trainer (excluding current instance on update)"""
         instance = self.instance
-        if Client.objects.filter(phone=value).exclude(pk=instance.pk if instance else None).exists():
-            raise serializers.ValidationError("A client with this phone number already exists.")
+        request = self.context.get('request')
+        trainer = request.user if request else None
+
+        queryset = Client.objects.filter(phone=value, trainer=trainer)
+        if instance:
+            queryset = queryset.exclude(pk=instance.pk)
+
+        if queryset.exists():
+            raise serializers.ValidationError("You already have a client with this phone number.")
         return value
 
 
@@ -272,15 +288,100 @@ class ClientCreateUpdateSerializer(serializers.ModelSerializer):
         ]
 
     def validate_email(self, value):
-        """Validate email is unique"""
+        """Validate email is unique per trainer"""
         instance = self.instance
-        if Client.objects.filter(email=value).exclude(pk=instance.pk if instance else None).exists():
-            raise serializers.ValidationError("A client with this email already exists.")
+        request = self.context.get('request')
+        trainer = request.user if request else None
+
+        queryset = Client.objects.filter(email=value, trainer=trainer)
+        if instance:
+            queryset = queryset.exclude(pk=instance.pk)
+
+        if queryset.exists():
+            raise serializers.ValidationError("You already have a client with this email.")
         return value
 
     def validate_phone(self, value):
-        """Validate phone is unique"""
+        """Validate phone is unique per trainer"""
         instance = self.instance
-        if Client.objects.filter(phone=value).exclude(pk=instance.pk if instance else None).exists():
-            raise serializers.ValidationError("A client with this phone number already exists.")
+        request = self.context.get('request')
+        trainer = request.user if request else None
+
+        queryset = Client.objects.filter(phone=value, trainer=trainer)
+        if instance:
+            queryset = queryset.exclude(pk=instance.pk)
+
+        if queryset.exists():
+            raise serializers.ValidationError("You already have a client with this phone number.")
         return value
+
+
+class ActivityLogSerializer(serializers.ModelSerializer):
+    """Serializer for ActivityLog model"""
+
+    class Meta:
+        model = ActivityLog
+        fields = [
+            'id',
+            'client',
+            'date',
+            'notes',
+            'performance_rating',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'client', 'created_at', 'updated_at']
+
+
+class ActivityLogCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating activity logs"""
+
+    class Meta:
+        model = ActivityLog
+        fields = [
+            'date',
+            'notes',
+            'performance_rating',
+        ]
+
+    def validate_performance_rating(self, value):
+        """Validate rating is between 1 and 5"""
+        if value is not None and (value < 1 or value > 5):
+            raise serializers.ValidationError("Performance rating must be between 1 and 5")
+        return value
+
+
+class ProgressMeasurementSerializer(serializers.ModelSerializer):
+    """Serializer for ProgressMeasurement model"""
+
+    measurement_type_display = serializers.CharField(source='get_measurement_type_display', read_only=True)
+
+    class Meta:
+        model = ProgressMeasurement
+        fields = [
+            'id',
+            'client',
+            'measurement_type',
+            'measurement_type_display',
+            'value',
+            'unit',
+            'notes',
+            'measured_at',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'client', 'created_at', 'updated_at']
+
+
+class ProgressMeasurementCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating progress measurements"""
+
+    class Meta:
+        model = ProgressMeasurement
+        fields = [
+            'measurement_type',
+            'value',
+            'unit',
+            'notes',
+            'measured_at',
+        ]
