@@ -5,20 +5,24 @@ from phonenumber_field.modelfields import PhoneNumberField
 
 
 class CustomUserManager(BaseUserManager):
-    def create_user(self, email, password=None, **extra_fields):
+    def create_user(self, username, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', False)
         if not email:
             raise ValueError(_('Email must be provided'))
         email = self.normalize_email(email)
 
-        new_user=self.model(email=email, **extra_fields)
-        new_user.set_password(password)
+        new_user=self.model(username=username,email=email, **extra_fields)
+    
 
-        new_user.save()
+        if password:
+            new_user.set_password(password)
+        else:
+            new_user.set_unusable_password()
 
+        new_user.save(using=self._db)
         return new_user
 
-    def create_superuser(self, email, password=None, **extra_fields):
+    def create_superuser(self,username, phone_number,email, password, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
@@ -32,7 +36,7 @@ class CustomUserManager(BaseUserManager):
         if extra_fields.get('is_active') is not True:
             raise ValueError(_("Superuser should have is_active as True"))
 
-        return self.create_user(email, password, **extra_fields)
+        return self.create_user(username=username, email=email, phone_number=phone_number, password=password, **extra_fields)
 
 
 
@@ -50,6 +54,8 @@ class User(AbstractUser):
 
     USERNAME_FIELD='username'
     REQUIRED_FIELDS=['email', 'phone_number']
+
+    objects = CustomUserManager()
 
 
     def __str__(self):
