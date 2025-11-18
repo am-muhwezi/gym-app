@@ -159,12 +159,7 @@ const ClientDetailPage: React.FC = () => {
                         {/* Edit Button */}
                         <Button
                             variant="secondary"
-                            onClick={() => {
-                                console.log('Edit button clicked');
-                                console.log('showEditModal before:', showEditModal);
-                                setShowEditModal(true);
-                                console.log('setShowEditModal called with true');
-                            }}
+                            onClick={() => setShowEditModal(true)}
                             className="w-full sm:w-auto"
                         >
                             Edit Info
@@ -183,39 +178,12 @@ const ClientDetailPage: React.FC = () => {
                                     <div className="py-2">
                                     <button
                                         onClick={() => {
-                                            exportService.exportProfile(client, 'json');
-                                            setShowExportMenu(false);
-                                        }}
-                                        className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
-                                    >
-                                        Profile (JSON)
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            exportService.exportGoals(client, goals, 'json');
-                                            setShowExportMenu(false);
-                                        }}
-                                        className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
-                                    >
-                                        Goals (JSON)
-                                    </button>
-                                    <button
-                                        onClick={() => {
                                             exportService.exportGoals(client, goals, 'csv');
                                             setShowExportMenu(false);
                                         }}
                                         className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
                                     >
                                         Goals (CSV)
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            exportService.exportPayments(client, payments, 'json');
-                                            setShowExportMenu(false);
-                                        }}
-                                        className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
-                                    >
-                                        Payments (JSON)
                                     </button>
                                     <button
                                         onClick={() => {
@@ -228,49 +196,12 @@ const ClientDetailPage: React.FC = () => {
                                     </button>
                                     <button
                                         onClick={() => {
-                                            exportService.exportWorkouts(client, workoutPlans, 'json');
-                                            setShowExportMenu(false);
-                                        }}
-                                        className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
-                                    >
-                                        Workouts (JSON)
-                                    </button>
-                                    <button
-                                        onClick={() => {
                                             exportService.exportWorkouts(client, workoutPlans, 'csv');
                                             setShowExportMenu(false);
                                         }}
                                         className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
                                     >
                                         Workouts (CSV)
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            exportService.exportProgress(client, progress, 'json');
-                                            setShowExportMenu(false);
-                                        }}
-                                        className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
-                                    >
-                                        Progress (JSON)
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            exportService.exportLogs(client, logs, 'json');
-                                            setShowExportMenu(false);
-                                        }}
-                                        className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
-                                    >
-                                        Daily Logs (JSON)
-                                    </button>
-                                    <div className="border-t border-dark-700 my-1"></div>
-                                    <button
-                                        onClick={() => {
-                                            exportService.exportAll(client, goals, payments, progress, workoutPlans, logs);
-                                            setShowExportMenu(false);
-                                        }}
-                                        className="w-full text-left px-4 py-2 hover:bg-dark-700 text-brand-primary font-semibold text-sm"
-                                    >
-                                        Export All Data (JSON)
                                     </button>
                                 </div>
                                 </div>
@@ -332,6 +263,18 @@ const ClientDetailPage: React.FC = () => {
                     <PaymentManager clientId={client.id} client={client} />
                 )}
             </div>
+
+            {/* Edit Client Modal */}
+            {showEditModal && (
+                <EditClientModal
+                    client={client}
+                    onClose={() => setShowEditModal(false)}
+                    onSuccess={(updatedClient) => {
+                        setClient(updatedClient);
+                        setShowEditModal(false);
+                    }}
+                />
+            )}
         </div>
     );
 };
@@ -1439,27 +1382,6 @@ const PaymentsTab: React.FC<{
                         </div>
                     </Card>
                 </div>
-            )}
-
-            {/* Edit Client Modal */}
-            {(() => {
-                console.log('showEditModal state:', showEditModal);
-                console.log('client exists:', !!client);
-                return null;
-            })()}
-            {showEditModal && client && (
-                <EditClientModal
-                    client={client}
-                    onClose={() => {
-                        console.log('Closing edit modal');
-                        setShowEditModal(false);
-                    }}
-                    onSuccess={(updatedClient) => {
-                        console.log('Client updated:', updatedClient);
-                        setClient(updatedClient);
-                        setShowEditModal(false);
-                    }}
-                />
             )}
         </div>
     );
