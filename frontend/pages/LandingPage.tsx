@@ -61,82 +61,190 @@ const LandingPage: React.FC = () => {
           Everything You Need to Succeed
         </h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {/* Feature 1 */}
-          <div className="bg-dark-800 p-8 rounded-xl border border-dark-700 hover:border-brand-primary transition-colors">
-            <div className="w-12 h-12 bg-brand-primary bg-opacity-20 rounded-lg flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          {/* Feature 1 - Client Management */}
+          <div className="bg-dark-800 p-8 rounded-xl border border-dark-700 hover:border-brand-primary transition-colors group">
+            <div className="mb-6 relative h-48 flex items-center justify-center">
+              <svg className="w-full h-full" viewBox="0 0 200 200" fill="none">
+                {/* Background circle */}
+                <circle cx="100" cy="100" r="80" fill="url(#clientGradient)" opacity="0.1"/>
+                {/* Profile cards illustration */}
+                <rect x="50" y="60" width="100" height="80" rx="8" fill="#1e293b" stroke="url(#clientGradient)" strokeWidth="2"/>
+                <circle cx="100" cy="85" r="12" fill="url(#clientGradient)"/>
+                <rect x="80" y="105" width="40" height="4" rx="2" fill="#475569"/>
+                <rect x="75" y="115" width="50" height="3" rx="1.5" fill="#334155"/>
+                <rect x="70" y="125" width="60" height="3" rx="1.5" fill="#334155"/>
+                {/* Additional profile cards in background */}
+                <rect x="40" y="50" width="100" height="80" rx="8" fill="#0f172a" stroke="#3b82f6" strokeWidth="1.5" opacity="0.6"/>
+                <rect x="60" y="70" width="100" height="80" rx="8" fill="#0f172a" stroke="#3b82f6" strokeWidth="1.5" opacity="0.3"/>
+                <defs>
+                  <linearGradient id="clientGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#3b82f6"/>
+                    <stop offset="100%" stopColor="#2563eb"/>
+                  </linearGradient>
+                </defs>
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-3">Client Management</h3>
-            <p className="text-gray-400">
-              Easily manage client profiles, track their progress, and maintain detailed workout and nutrition plans.
-            </p>
+            <h3 className="text-xl font-semibold text-white mb-2">Client Management</h3>
+            <p className="text-sm text-gray-400">Organize and track all your clients in one place</p>
           </div>
 
-          {/* Feature 2 */}
-          <div className="bg-dark-800 p-8 rounded-xl border border-dark-700 hover:border-brand-primary transition-colors">
-            <div className="w-12 h-12 bg-brand-primary bg-opacity-20 rounded-lg flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          {/* Feature 2 - Progress Tracking */}
+          <div className="bg-dark-800 p-8 rounded-xl border border-dark-700 hover:border-brand-primary transition-colors group">
+            <div className="mb-6 relative h-48 flex items-center justify-center">
+              <svg className="w-full h-full" viewBox="0 0 200 200" fill="none">
+                {/* Background */}
+                <circle cx="100" cy="100" r="80" fill="url(#progressGradient)" opacity="0.1"/>
+                {/* Chart illustration */}
+                <line x1="40" y1="140" x2="160" y2="140" stroke="#475569" strokeWidth="2"/>
+                <line x1="40" y1="60" x2="40" y2="140" stroke="#475569" strokeWidth="2"/>
+                {/* Bar chart */}
+                <rect x="55" y="110" width="15" height="30" rx="2" fill="url(#progressGradient)" opacity="0.6"/>
+                <rect x="80" y="95" width="15" height="45" rx="2" fill="url(#progressGradient)" opacity="0.75"/>
+                <rect x="105" y="75" width="15" height="65" rx="2" fill="url(#progressGradient)"/>
+                <rect x="130" y="85" width="15" height="55" rx="2" fill="url(#progressGradient)" opacity="0.8"/>
+                {/* Trend line */}
+                <path d="M 60 120 L 87 105 L 112 80 L 137 90" stroke="#10b981" strokeWidth="3" strokeLinecap="round" fill="none"/>
+                <circle cx="60" cy="120" r="4" fill="#10b981"/>
+                <circle cx="87" cy="105" r="4" fill="#10b981"/>
+                <circle cx="112" cy="80" r="4" fill="#10b981"/>
+                <circle cx="137" cy="90" r="4" fill="#10b981"/>
+                <defs>
+                  <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#3b82f6"/>
+                    <stop offset="100%" stopColor="#2563eb"/>
+                  </linearGradient>
+                </defs>
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-3">Progress Tracking</h3>
-            <p className="text-gray-400">
-              Monitor client achievements, set goals, and visualize progress with comprehensive analytics and reports.
-            </p>
+            <h3 className="text-xl font-semibold text-white mb-2">Progress Tracking</h3>
+            <p className="text-sm text-gray-400">Visualize client achievements with analytics</p>
           </div>
 
-          {/* Feature 3 */}
-          <div className="bg-dark-800 p-8 rounded-xl border border-dark-700 hover:border-brand-primary transition-colors">
-            <div className="w-12 h-12 bg-brand-primary bg-opacity-20 rounded-lg flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+          {/* Feature 3 - Payment Processing */}
+          <div className="bg-dark-800 p-8 rounded-xl border border-dark-700 hover:border-brand-primary transition-colors group">
+            <div className="mb-6 relative h-48 flex items-center justify-center">
+              <svg className="w-full h-full" viewBox="0 0 200 200" fill="none">
+                {/* Background */}
+                <circle cx="100" cy="100" r="80" fill="url(#paymentGradient)" opacity="0.1"/>
+                {/* M-Pesa card illustration */}
+                <rect x="45" y="70" width="110" height="70" rx="8" fill="url(#paymentGradient)"/>
+                <circle cx="70" cy="95" r="8" fill="#ffffff" opacity="0.3"/>
+                <circle cx="85" cy="95" r="8" fill="#ffffff" opacity="0.3"/>
+                <rect x="55" y="115" width="40" height="5" rx="2.5" fill="#ffffff" opacity="0.5"/>
+                <rect x="55" y="125" width="60" height="4" rx="2" fill="#ffffff" opacity="0.3"/>
+                {/* Checkmark */}
+                <circle cx="135" cy="110" r="18" fill="#10b981"/>
+                <path d="M 128 110 L 133 115 L 142 105" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                <defs>
+                  <linearGradient id="paymentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#3b82f6"/>
+                    <stop offset="100%" stopColor="#2563eb"/>
+                  </linearGradient>
+                </defs>
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-3">Payment Processing</h3>
-            <p className="text-gray-400">
-              Accept payments seamlessly with M-Pesa integration. Track invoices and manage your revenue effortlessly.
-            </p>
+            <h3 className="text-xl font-semibold text-white mb-2">Payment Processing</h3>
+            <p className="text-sm text-gray-400">M-Pesa integration for seamless transactions</p>
           </div>
 
-          {/* Feature 4 */}
-          <div className="bg-dark-800 p-8 rounded-xl border border-dark-700 hover:border-brand-primary transition-colors">
-            <div className="w-12 h-12 bg-brand-primary bg-opacity-20 rounded-lg flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          {/* Feature 4 - Session Booking */}
+          <div className="bg-dark-800 p-8 rounded-xl border border-dark-700 hover:border-brand-primary transition-colors group">
+            <div className="mb-6 relative h-48 flex items-center justify-center">
+              <svg className="w-full h-full" viewBox="0 0 200 200" fill="none">
+                {/* Background */}
+                <circle cx="100" cy="100" r="80" fill="url(#bookingGradient)" opacity="0.1"/>
+                {/* Calendar illustration */}
+                <rect x="50" y="60" width="100" height="90" rx="8" fill="#1e293b" stroke="url(#bookingGradient)" strokeWidth="2"/>
+                <rect x="50" y="60" width="100" height="20" rx="8" fill="url(#bookingGradient)"/>
+                {/* Calendar grid */}
+                <rect x="60" y="90" width="12" height="12" rx="2" fill="#475569"/>
+                <rect x="78" y="90" width="12" height="12" rx="2" fill="#475569"/>
+                <rect x="96" y="90" width="12" height="12" rx="2" fill="url(#bookingGradient)"/>
+                <rect x="114" y="90" width="12" height="12" rx="2" fill="#475569"/>
+                <rect x="132" y="90" width="12" height="12" rx="2" fill="#475569"/>
+                <rect x="60" y="108" width="12" height="12" rx="2" fill="#475569"/>
+                <rect x="78" y="108" width="12" height="12" rx="2" fill="url(#bookingGradient)"/>
+                <rect x="96" y="108" width="12" height="12" rx="2" fill="#475569"/>
+                <rect x="114" y="108" width="12" height="12" rx="2" fill="#475569"/>
+                <rect x="60" y="126" width="12" height="12" rx="2" fill="#475569"/>
+                <rect x="78" y="126" width="12" height="12" rx="2" fill="#475569"/>
+                <defs>
+                  <linearGradient id="bookingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#3b82f6"/>
+                    <stop offset="100%" stopColor="#2563eb"/>
+                  </linearGradient>
+                </defs>
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-3">Session Booking</h3>
-            <p className="text-gray-400">
-              Manage your schedule with an intuitive booking system. Let clients book sessions and avoid double-bookings.
-            </p>
+            <h3 className="text-xl font-semibold text-white mb-2">Session Booking</h3>
+            <p className="text-sm text-gray-400">Intuitive scheduling for you and your clients</p>
           </div>
 
-          {/* Feature 5 */}
-          <div className="bg-dark-800 p-8 rounded-xl border border-dark-700 hover:border-brand-primary transition-colors">
-            <div className="w-12 h-12 bg-brand-primary bg-opacity-20 rounded-lg flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          {/* Feature 5 - Workout Plans */}
+          <div className="bg-dark-800 p-8 rounded-xl border border-dark-700 hover:border-brand-primary transition-colors group">
+            <div className="mb-6 relative h-48 flex items-center justify-center">
+              <svg className="w-full h-full" viewBox="0 0 200 200" fill="none">
+                {/* Background */}
+                <circle cx="100" cy="100" r="80" fill="url(#workoutGradient)" opacity="0.1"/>
+                {/* Workout plan document */}
+                <rect x="60" y="50" width="80" height="100" rx="8" fill="#1e293b" stroke="url(#workoutGradient)" strokeWidth="2"/>
+                {/* AI sparkle */}
+                <circle cx="130" cy="60" r="12" fill="url(#workoutGradient)"/>
+                <path d="M 130 54 L 130 66 M 124 60 L 136 60" stroke="#ffffff" strokeWidth="2" strokeLinecap="round"/>
+                <circle cx="126" cy="56" r="1.5" fill="#ffffff"/>
+                <circle cx="134" cy="64" r="1.5" fill="#ffffff"/>
+                {/* Exercise list */}
+                <circle cx="70" cy="70" r="3" fill="url(#workoutGradient)"/>
+                <rect x="78" y="68" width="50" height="3" rx="1.5" fill="#475569"/>
+                <circle cx="70" cy="82" r="3" fill="url(#workoutGradient)"/>
+                <rect x="78" y="80" width="45" height="3" rx="1.5" fill="#475569"/>
+                <circle cx="70" cy="94" r="3" fill="url(#workoutGradient)"/>
+                <rect x="78" y="92" width="40" height="3" rx="1.5" fill="#475569"/>
+                <circle cx="70" cy="106" r="3" fill="#475569"/>
+                <rect x="78" y="104" width="48" height="3" rx="1.5" fill="#334155"/>
+                <circle cx="70" cy="118" r="3" fill="#475569"/>
+                <rect x="78" y="116" width="42" height="3" rx="1.5" fill="#334155"/>
+                <defs>
+                  <linearGradient id="workoutGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#3b82f6"/>
+                    <stop offset="100%" stopColor="#2563eb"/>
+                  </linearGradient>
+                </defs>
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-3">Workout Plans</h3>
-            <p className="text-gray-400">
-              Create customized workout plans with AI assistance. Save templates and quickly assign plans to clients.
-            </p>
+            <h3 className="text-xl font-semibold text-white mb-2">Workout Plans</h3>
+            <p className="text-sm text-gray-400">AI-powered customized training programs</p>
           </div>
 
-          {/* Feature 6 */}
-          <div className="bg-dark-800 p-8 rounded-xl border border-dark-700 hover:border-brand-primary transition-colors">
-            <div className="w-12 h-12 bg-brand-primary bg-opacity-20 rounded-lg flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          {/* Feature 6 - Mobile Ready */}
+          <div className="bg-dark-800 p-8 rounded-xl border border-dark-700 hover:border-brand-primary transition-colors group">
+            <div className="mb-6 relative h-48 flex items-center justify-center">
+              <svg className="w-full h-full" viewBox="0 0 200 200" fill="none">
+                {/* Background */}
+                <circle cx="100" cy="100" r="80" fill="url(#mobileGradient)" opacity="0.1"/>
+                {/* Desktop monitor */}
+                <rect x="45" y="70" width="70" height="50" rx="4" fill="#1e293b" stroke="url(#mobileGradient)" strokeWidth="2"/>
+                <rect x="70" y="122" width="20" height="3" rx="1.5" fill="#475569"/>
+                <rect x="65" y="125" width="30" height="2" rx="1" fill="#334155"/>
+                {/* Mobile phone */}
+                <rect x="120" y="80" width="35" height="60" rx="6" fill="#1e293b" stroke="url(#mobileGradient)" strokeWidth="2"/>
+                <rect x="125" y="88" width="25" height="45" rx="2" fill="url(#mobileGradient)" opacity="0.2"/>
+                <circle cx="137.5" cy="137" r="3" fill="url(#mobileGradient)"/>
+                {/* Sync arrows */}
+                <path d="M 105 90 Q 112 85 118 88" stroke="#10b981" strokeWidth="2" fill="none" strokeLinecap="round"/>
+                <path d="M 120 88 L 118 85 L 118 91" fill="#10b981"/>
+                <path d="M 118 105 Q 112 110 105 107" stroke="#10b981" strokeWidth="2" fill="none" strokeLinecap="round"/>
+                <path d="M 105 107 L 107 110 L 107 104" fill="#10b981"/>
+                <defs>
+                  <linearGradient id="mobileGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#3b82f6"/>
+                    <stop offset="100%" stopColor="#2563eb"/>
+                  </linearGradient>
+                </defs>
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-3">Mobile Ready</h3>
-            <p className="text-gray-400">
-              Access your business from anywhere. Our PWA works seamlessly on desktop and mobile devices.
-            </p>
+            <h3 className="text-xl font-semibold text-white mb-2">Mobile Ready</h3>
+            <p className="text-sm text-gray-400">Access anywhere on any device</p>
           </div>
         </div>
       </section>
