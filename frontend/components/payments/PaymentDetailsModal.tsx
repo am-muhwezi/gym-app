@@ -51,6 +51,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
 
   const [paymentPeriod, setPaymentPeriod] = useState<string>('custom');
   const [expiryDate, setExpiryDate] = useState<string>('');
+  const [sessionsPerWeek, setSessionsPerWeek] = useState<number>(3);
 
   // Calculate expiry date based on payment period
   const calculateExpiryDate = (period: string): string => {
@@ -105,6 +106,10 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
         transaction_id: '',
         phone_number: payment.phone_number || client.phone || '',
       });
+      // Reset payment period and expiry date
+      setPaymentPeriod('custom');
+      setExpiryDate(payment.due_date || '');
+      setSessionsPerWeek(3);
     }
   }, [isOpen, payment, client]);
 
@@ -125,13 +130,29 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   const handleUpdatePayment = async () => {
     if (!payment) return;
 
+    // Validate amount
+    if (!paymentForm.amount || paymentForm.amount <= 0) {
+      alert('Amount must be greater than 0');
+      return;
+    }
+
     try {
+      // Build description with sessions per week if monthly
+      let finalDescription = paymentForm.description;
+      if (paymentPeriod === 'monthly' && sessionsPerWeek > 0) {
+        const sessionsInfo = ` (${sessionsPerWeek} sessions/week)`;
+        if (!finalDescription.includes('sessions/week')) {
+          finalDescription += sessionsInfo;
+        }
+      }
+
       // Update payment details
       await paymentService.updatePayment(payment.id, {
         amount: paymentForm.amount,
         due_date: paymentForm.due_date,
-        description: paymentForm.description,
+        description: finalDescription,
         notes: paymentForm.notes,
+        sessions_per_week: paymentPeriod === 'monthly' ? sessionsPerWeek : undefined,
       });
       onUpdate();
       setIsEditing(false);
@@ -146,13 +167,29 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
       return;
     }
 
+    // Validate amount
+    if (!paymentForm.amount || paymentForm.amount <= 0) {
+      alert('Amount must be greater than 0');
+      return;
+    }
+
     try {
+      // Build description with sessions per week if monthly
+      let finalDescription = paymentForm.description;
+      if (paymentPeriod === 'monthly' && sessionsPerWeek > 0) {
+        const sessionsInfo = ` (${sessionsPerWeek} sessions/week)`;
+        if (!finalDescription.includes('sessions/week')) {
+          finalDescription += sessionsInfo;
+        }
+      }
+
       // First update payment details if changed
       await paymentService.updatePayment(payment.id, {
         amount: paymentForm.amount,
         due_date: paymentForm.due_date,
-        description: paymentForm.description,
+        description: finalDescription,
         notes: paymentForm.notes,
+        sessions_per_week: paymentPeriod === 'monthly' ? sessionsPerWeek : undefined,
       });
 
       // Then initiate M-Pesa payment
@@ -170,13 +207,29 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   const handleMarkAsPaid = async () => {
     if (!payment) return;
 
+    // Validate amount
+    if (!paymentForm.amount || paymentForm.amount <= 0) {
+      alert('Amount must be greater than 0');
+      return;
+    }
+
     try {
+      // Build description with sessions per week if monthly
+      let finalDescription = paymentForm.description;
+      if (paymentPeriod === 'monthly' && sessionsPerWeek > 0) {
+        const sessionsInfo = ` (${sessionsPerWeek} sessions/week)`;
+        if (!finalDescription.includes('sessions/week')) {
+          finalDescription += sessionsInfo;
+        }
+      }
+
       // First update payment details
       await paymentService.updatePayment(payment.id, {
         amount: paymentForm.amount,
         due_date: paymentForm.due_date,
-        description: paymentForm.description,
+        description: finalDescription,
         notes: paymentForm.notes,
+        sessions_per_week: paymentPeriod === 'monthly' ? sessionsPerWeek : undefined,
       });
 
       // Then mark as paid
@@ -308,20 +361,42 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                   ]}
                 />
 
-                {paymentPeriod === 'custom' ? (
+                {paymentPeriod === 'monthly' && (
                   <Input
-                    label="Expiry Date *"
-                    type="date"
+                    label="Sessions per Week *"
+                    type="number"
+                    min="1"
+                    max="7"
                     required
-                    value={paymentForm.due_date}
-                    onChange={(e) => {
-                      setPaymentForm({ ...paymentForm, due_date: e.target.value });
-                      setExpiryDate(e.target.value);
-                    }}
+                    value={sessionsPerWeek}
+                    onChange={(e) => setSessionsPerWeek(parseInt(e.target.value) || 1)}
+                    placeholder="e.g., 3"
                   />
+                )}
+
+                {paymentPeriod === 'custom' ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Custom Expiry Date *
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      min={new Date().toISOString().split('T')[0]}
+                      value={paymentForm.due_date}
+                      onChange={(e) => {
+                        setPaymentForm({ ...paymentForm, due_date: e.target.value });
+                        setExpiryDate(e.target.value);
+                      }}
+                      className="w-full px-4 py-3 bg-dark-800 border border-dark-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent transition-all"
+                    />
+                    <p className="mt-1 text-sm text-gray-500">
+                      Click to open calendar and select expiry date
+                    </p>
+                  </div>
                 ) : (
                   <div className="p-4 bg-dark-800 rounded-lg border border-dark-700">
-                    <p className="text-sm text-gray-400 mb-1">Expiry Date</p>
+                    <p className="text-sm text-gray-400 mb-1">Expiry Date (Auto-calculated)</p>
                     <p className="text-white font-semibold">
                       {expiryDate ? new Date(expiryDate).toLocaleDateString() : 'Select a period'}
                     </p>
@@ -407,17 +482,28 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
             {isPending && (
               <>
                 {paymentForm.payment_method === 'mpesa' && (
-                  <Button onClick={handleMpesaPayment}>
+                  <Button
+                    onClick={handleMpesaPayment}
+                    disabled={!paymentForm.amount || paymentForm.amount <= 0}
+                  >
                     Pay with M-Pesa
                   </Button>
                 )}
-                <Button onClick={handleMarkAsPaid} variant="secondary">
+                <Button
+                  onClick={handleMarkAsPaid}
+                  variant="secondary"
+                  disabled={!paymentForm.amount || paymentForm.amount <= 0}
+                >
                   Mark as Paid
                 </Button>
                 {paymentForm.amount !== Number(payment.amount) ||
                  paymentForm.due_date !== payment.due_date ||
                  paymentForm.description !== payment.description ? (
-                  <Button onClick={handleUpdatePayment} variant="outline">
+                  <Button
+                    onClick={handleUpdatePayment}
+                    variant="outline"
+                    disabled={!paymentForm.amount || paymentForm.amount <= 0}
+                  >
                     Save Changes
                   </Button>
                 ) : null}

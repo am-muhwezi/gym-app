@@ -32,6 +32,7 @@ class PaymentSerializer(serializers.ModelSerializer):
             'phone_number',
             'invoice_number',
             'description',
+            'sessions_per_week',
             'payment_date',
             'due_date',
             'is_overdue',
@@ -83,6 +84,7 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
             'amount',
             'payment_method',
             'description',
+            'sessions_per_week',
             'due_date',
             'phone_number',
         ]
@@ -112,6 +114,7 @@ class PaymentUpdateSerializer(serializers.ModelSerializer):
             'payment_method',
             'payment_status',
             'description',
+            'sessions_per_week',
             'due_date',
             'mpesa_receipt_number',
             'phone_number',
@@ -194,6 +197,7 @@ class PaymentReceiptSerializer(serializers.ModelSerializer):
             'payment_method_display',
             'mpesa_receipt_number',
             'description',
+            'sessions_per_week',
             'payment_date',
             'created_at',
         ]

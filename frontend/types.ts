@@ -172,6 +172,7 @@ export interface Payment {
   due_date?: string;
   description?: string;
   notes?: string;
+  sessions_per_week?: number;
   created_at: string;
   updated_at: string;
 
@@ -189,6 +190,7 @@ export interface PaymentCreatePayload {
   due_date?: string;
   description?: string;
   notes?: string;
+  sessions_per_week?: number;
 }
 
 export interface PaymentMarkPaidPayload {

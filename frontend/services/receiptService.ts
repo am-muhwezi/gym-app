@@ -157,6 +157,18 @@ export const generatePaymentReceipt = (payment: Payment, client: Client): string
           <span class="info-label">Plan:</span>
           <span class="info-value">${payment.description || 'Membership Payment'}</span>
         </div>
+        ${payment.sessions_per_week ? `
+        <div class="info-row">
+          <span class="info-label">Sessions per Week:</span>
+          <span class="info-value">${payment.sessions_per_week} sessions</span>
+        </div>
+        ` : ''}
+        ${payment.due_date ? `
+        <div class="info-row">
+          <span class="info-label">Expires:</span>
+          <span class="info-value">${new Date(payment.due_date).toLocaleDateString('en-KE')}</span>
+        </div>
+        ` : ''}
         <div class="info-row">
           <span class="info-label">Type:</span>
           <span class="info-value">Outdoor</span>
