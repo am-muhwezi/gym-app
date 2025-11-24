@@ -36,6 +36,7 @@ class Payment(models.Model):
     # Invoice details
     invoice_number = models.CharField(max_length=50, unique=True, blank=True)
     description = models.TextField(blank=True, help_text="Payment description or notes")
+    sessions_per_week = models.PositiveIntegerField(null=True, blank=True, help_text="Number of sessions per week for monthly payments")
 
     # Dates
     payment_date = models.DateTimeField(null=True, blank=True, help_text="Date payment was completed")
