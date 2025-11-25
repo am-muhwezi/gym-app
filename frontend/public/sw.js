@@ -42,7 +42,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle API requests differently - always try network first
+  // Skip caching for authentication endpoints
+  if (event.request.url.includes('/api/auth/')) {
+    // Never cache auth requests - always go to network
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Handle other API requests - network first with cache fallback
   if (event.request.url.includes('/api/')) {
     event.respondWith(
       fetch(event.request)
