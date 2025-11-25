@@ -26,15 +26,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Check if user is already logged in on mount
     useEffect(() => {
-        const initAuth = () => {
+        const initAuth = async () => {
             const token = authService.getToken();
             const storedUser = localStorage.getItem('user');
 
             if (token && storedUser) {
                 try {
                     authService.setToken(token);
-                    const userData = JSON.parse(storedUser);
+                    // Validate token by fetching current user from server
+                    const userData = await authService.getCurrentUser();
                     setUser(userData);
+                    // Update stored user data in case it changed
+                    localStorage.setItem('user', JSON.stringify(userData));
                 } catch (error) {
                     console.error('Failed to restore user session:', error);
                     authService.removeToken();
