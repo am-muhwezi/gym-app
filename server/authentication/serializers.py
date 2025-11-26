@@ -102,3 +102,31 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("Must provide username and password")
 
         return data
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """Serializer for password reset request"""
+    email = serializers.EmailField(
+        error_messages={
+            'required': 'Email is required',
+            'invalid': 'Enter a valid email address'
+        }
+    )
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """Serializer for password reset confirmation"""
+    token = serializers.UUIDField(
+        error_messages={
+            'required': 'Token is required',
+            'invalid': 'Invalid token format'
+        }
+    )
+    new_password = serializers.CharField(
+        min_length=6,
+        write_only=True,
+        error_messages={
+            'required': 'New password is required',
+            'min_length': 'Password must be at least 6 characters'
+        }
+    )

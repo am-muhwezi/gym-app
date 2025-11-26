@@ -4,8 +4,14 @@ from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
-from .models import User
+from django.core.mail import send_mail, EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.conf import settings
+from .models import User, PasswordResetToken
 from . import serializers
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class HelloAuthView(generics.GenericAPIView):
@@ -83,3 +89,130 @@ class MeView(APIView):
     def get(self, request):
         serializer = serializers.UserSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class PasswordResetRequestView(generics.GenericAPIView):
+    """Request a password reset token"""
+    serializer_class = serializers.PasswordResetRequestSerializer
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+
+            try:
+                user = User.objects.get(email=email)
+
+                # Invalidate any existing tokens for this user
+                PasswordResetToken.objects.filter(user=user, used=False).update(used=True)
+
+                # Create new reset token
+                reset_token = PasswordResetToken.objects.create(user=user)
+
+                # In production, you would send an email with the reset link
+                # For now, we'll return the token in the response for development
+                # The frontend URL would be something like: http://yourapp.com/reset-password?token=<token>
+                reset_url = f"{settings.FRONTEND_URL}/#/reset-password?token={reset_token.token}"
+
+                try:
+                    # Render HTML email template
+                    html_content = render_to_string('authentication/password_reset_email.html', {
+                        'username': user.username,
+                        'reset_url': reset_url,
+                    })
+
+                    # Plain text fallback
+                    text_content = f'''Hello {user.username},
+
+You have requested to reset your password for your TrainrUp account.
+
+Click the link below to reset your password:
+
+{reset_url}
+
+This link will expire in 1 hour.
+
+If you did not request this password reset, please ignore this email.
+
+Best regards,
+The TrainrUp Team
+'''
+
+                    # Create email with both HTML and plain text
+                    email = EmailMultiAlternatives(
+                        subject='Password Reset - TrainrUp',
+                        body=text_content,
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        to=[user.email],
+                    )
+                    email.attach_alternative(html_content, "text/html")
+                    email.send(fail_silently=False)
+
+                    logger.info(f"Password reset email sent to {user.email}")
+                except Exception as e:
+                    # Log the error but don't expose it to the user
+                    logger.error(f"Failed to send password reset email: {str(e)}")
+                    # For development, return the token
+                    return Response({
+                        "message": "Password reset token created. Email sending failed.",
+                        "reset_url": reset_url  # Remove this in production
+                    }, status=status.HTTP_200_OK)
+
+                return Response({
+                    "message": "If an account exists with this email, a password reset link has been sent."
+                }, status=status.HTTP_200_OK)
+
+            except User.DoesNotExist:
+                # Don't reveal whether the user exists or not for security
+                pass
+
+            return Response({
+                "message": "If an account exists with this email, a password reset link has been sent."
+            }, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetConfirmView(generics.GenericAPIView):
+    """Confirm password reset with token"""
+    serializer_class = serializers.PasswordResetConfirmSerializer
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+
+        if serializer.is_valid():
+            token = serializer.validated_data['token']
+            new_password = serializer.validated_data['new_password']
+
+            try:
+                reset_token = PasswordResetToken.objects.get(token=token)
+
+                if not reset_token.is_valid():
+                    return Response({
+                        "error": "This password reset link has expired or has already been used."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                # Reset the password
+                user = reset_token.user
+                user.set_password(new_password)
+                user.save()
+
+                # Mark token as used
+                reset_token.used = True
+                reset_token.save()
+
+                logger.info(f"Password reset successful for user {user.email}")
+
+                return Response({
+                    "message": "Password has been reset successfully. You can now login with your new password."
+                }, status=status.HTTP_200_OK)
+
+            except PasswordResetToken.DoesNotExist:
+                return Response({
+                    "error": "Invalid password reset token."
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
