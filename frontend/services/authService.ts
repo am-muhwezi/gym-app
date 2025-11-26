@@ -73,4 +73,26 @@ export const authService = {
     getToken(): string | null {
         return localStorage.getItem('auth_token');
     },
+
+    /**
+     * Request password reset - sends reset link to email
+     */
+    async requestPasswordReset(email: string): Promise<{ message: string; reset_url?: string }> {
+        const response = await apiClient.post<{ message: string; reset_url?: string }>(
+            '/auth/password-reset/request/',
+            { email }
+        );
+        return response;
+    },
+
+    /**
+     * Confirm password reset with token
+     */
+    async confirmPasswordReset(token: string, newPassword: string): Promise<{ message: string }> {
+        const response = await apiClient.post<{ message: string }>(
+            '/auth/password-reset/confirm/',
+            { token, new_password: newPassword }
+        );
+        return response;
+    },
 };
