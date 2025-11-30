@@ -22,6 +22,8 @@ export interface Exercise {
   description: string;
   sets: number;
   reps: number;
+  weight?: number;
+  rpe?: number;
   rest_period_seconds: number;
   created_at: string;
   updated_at: string;
@@ -37,6 +39,8 @@ export interface ExerciseCreatePayload {
   description?: string;
   sets: number;
   reps: number;
+  weight?: number;
+  rpe?: number;
   rest_period_seconds: number;
 }
 

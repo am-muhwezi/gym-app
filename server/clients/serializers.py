@@ -61,6 +61,8 @@ class ExerciseSerializer(serializers.ModelSerializer):
             'description',
             'sets',
             'reps',
+            'weight',
+            'rpe',
             'rest_period_seconds',
             'created_at',
             'updated_at',
@@ -78,8 +80,16 @@ class ExerciseCreateSerializer(serializers.ModelSerializer):
             'description',
             'sets',
             'reps',
+            'weight',
+            'rpe',
             'rest_period_seconds',
         ]
+
+    def validate_rpe(self, value):
+        """Validate RPE is between 1 and 10"""
+        if value is not None and (value < 1 or value > 10):
+            raise serializers.ValidationError("RPE must be between 1 and 10")
+        return value
 
 
 class WorkoutPlanSerializer(serializers.ModelSerializer):

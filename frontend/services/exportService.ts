@@ -12,8 +12,7 @@ export const exportService = {
    */
   exportToCSV(data: any[], filename: string) {
     if (data.length === 0) {
-      alert('No data to export');
-      return;
+      throw new Error('No data to export');
     }
 
     const headers = Object.keys(data[0]);

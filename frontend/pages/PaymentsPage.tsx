@@ -13,6 +13,7 @@ import {
 import { Card, Button, Modal, Input, Select, TextArea, Badge, StatCard } from '../components/ui';
 import { paymentService, clientService, generatePaymentReceipt, printReceipt } from '../services';
 import { PaymentDetailsModal } from '../components/payments';
+import { useToast } from '../context/ToastContext';
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'cash', label: 'Cash' },
@@ -32,6 +33,7 @@ const PAYMENT_STATUSES: { value: PaymentStatus | 'all'; label: string }[] = [
 ];
 
 const PaymentsPage: React.FC = () => {
+  const { showSuccess, showError, showWarning } = useToast();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [statistics, setStatistics] = useState<PaymentStatistics | null>(null);
@@ -77,17 +79,18 @@ const PaymentsPage: React.FC = () => {
 
   const handleCreatePayment = async () => {
     if (!createForm.client || !createForm.amount) {
-      alert('Please fill in required fields');
+      showWarning('Please fill in required fields');
       return;
     }
 
     try {
       await paymentService.createPayment(createForm);
+      showSuccess('Payment created successfully');
       setShowCreateModal(false);
       resetCreateForm();
       loadData();
     } catch (error: any) {
-      alert(`Failed to create payment: ${error.message}`);
+      showError(`Failed to create payment: ${error.message}`);
     }
   };
 

@@ -168,6 +168,8 @@ class Exercise(models.Model):
     description = models.TextField(blank=True)
     sets = models.PositiveIntegerField()
     reps = models.PositiveIntegerField()
+    weight = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, help_text='Weight in kg')
+    rpe = models.PositiveIntegerField(null=True, blank=True, help_text='Rate of Perceived Exertion (1-10)')
     rest_period_seconds = models.PositiveIntegerField()
 
     created_at = models.DateTimeField(auto_now_add=True)

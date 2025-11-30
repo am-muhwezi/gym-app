@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { ClientProgress, ProgressCreatePayload } from '../../types';
 import { Card, Button, Modal, Input, TextArea, StatCard } from '../ui';
 import { progressService } from '../../services';
+import { useToast } from '../../context/ToastContext';
 
 interface ProgressTrackerProps {
   clientId: string;
 }
 
 const ProgressTracker: React.FC<ProgressTrackerProps> = ({ clientId }) => {
+  const { showSuccess, showError } = useToast();
   const [progressRecords, setProgressRecords] = useState<ClientProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -53,12 +55,13 @@ const ProgressTracker: React.FC<ProgressTrackerProps> = ({ clientId }) => {
     e.preventDefault();
     try {
       await progressService.createProgress(clientId, formData);
+      showSuccess('Progress recorded successfully');
       setShowAddModal(false);
       resetForm();
       loadProgress();
     } catch (error) {
       console.error('Error saving progress:', error);
-      alert('Failed to save progress. Please try again.');
+      showError('Failed to save progress. Please try again.');
     }
   };
 
