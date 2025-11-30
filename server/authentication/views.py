@@ -125,19 +125,31 @@ class PasswordResetRequestView(generics.GenericAPIView):
                         logger.info(f"Password reset email sent to {user.email}")
                     else:
                         logger.error(f"Failed to send password reset email to {user.email}")
-                        # For development, you can return the reset_url if email fails
-                        # Remove this in production for security
-                        return Response({
-                            "message": "Password reset token created. Email sending failed.",
-                            "reset_url": reset_url  # Remove this in production
-                        }, status=status.HTTP_200_OK)
+                        # Only return reset_url in development mode for debugging
+                        if settings.DEBUG:
+                            return Response({
+                                "message": "Password reset token created. Email sending failed.",
+                                "reset_url": reset_url
+                            }, status=status.HTTP_200_OK)
+                        else:
+                            # In production, don't expose the URL for security
+                            return Response({
+                                "message": "If an account exists with this email, a password reset link has been sent."
+                            }, status=status.HTTP_200_OK)
 
                 except Exception as e:
                     logger.error(f"Error sending password reset email: {str(e)}")
-                    return Response({
-                        "message": "Password reset token created. Email sending failed.",
-                        "reset_url": reset_url  # Remove this in production
-                    }, status=status.HTTP_200_OK)
+                    # Only return reset_url in development mode for debugging
+                    if settings.DEBUG:
+                        return Response({
+                            "message": "Password reset token created. Email sending failed.",
+                            "reset_url": reset_url
+                        }, status=status.HTTP_200_OK)
+                    else:
+                        # In production, don't expose the URL for security
+                        return Response({
+                            "message": "If an account exists with this email, a password reset link has been sent."
+                        }, status=status.HTTP_200_OK)
 
                 return Response({
                     "message": "If an account exists with this email, a password reset link has been sent."
