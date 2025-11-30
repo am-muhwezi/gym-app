@@ -9,6 +9,7 @@ import {
 } from '../../types';
 import { Modal, Button, Input, Select, TextArea, Badge } from '../ui';
 import { paymentService, generatePaymentReceipt, printReceipt } from '../../services';
+import { useToast } from '../../context/ToastContext';
 
 interface PaymentDetailsModalProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   client,
   onUpdate,
 }) => {
+  const { showSuccess, showError, showWarning, showInfo } = useToast();
   const [clientPayments, setClientPayments] = useState<Payment[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -132,7 +134,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
 
     // Validate amount
     if (!paymentForm.amount || paymentForm.amount <= 0) {
-      alert('Amount must be greater than 0');
+      showWarning('Amount must be greater than 0');
       return;
     }
 
@@ -154,22 +156,23 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
         notes: paymentForm.notes,
         sessions_per_week: paymentPeriod === 'monthly' ? sessionsPerWeek : undefined,
       });
+      showSuccess('Payment updated successfully');
       onUpdate();
       setIsEditing(false);
     } catch (error: any) {
-      alert(`Failed to update payment: ${error.message}`);
+      showError(`Failed to update payment: ${error.message}`);
     }
   };
 
   const handleMpesaPayment = async () => {
     if (!payment || !paymentForm.phone_number) {
-      alert('Please enter phone number');
+      showWarning('Please enter phone number');
       return;
     }
 
     // Validate amount
     if (!paymentForm.amount || paymentForm.amount <= 0) {
-      alert('Amount must be greater than 0');
+      showWarning('Amount must be greater than 0');
       return;
     }
 
@@ -196,11 +199,11 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
       const result = await paymentService.payWithMpesa(payment.id, {
         phone_number: paymentForm.phone_number,
       });
-      alert(result.message || 'M-Pesa payment prompt sent successfully!');
+      showSuccess(result.message || 'M-Pesa payment prompt sent successfully!');
       onUpdate();
       onClose();
     } catch (error: any) {
-      alert(`Failed to initiate M-Pesa payment: ${error.message}`);
+      showError(`Failed to initiate M-Pesa payment: ${error.message}`);
     }
   };
 
@@ -209,7 +212,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
 
     // Validate amount
     if (!paymentForm.amount || paymentForm.amount <= 0) {
-      alert('Amount must be greater than 0');
+      showWarning('Amount must be greater than 0');
       return;
     }
 
@@ -238,10 +241,11 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
         transaction_id: paymentForm.transaction_id,
         notes: paymentForm.notes,
       });
+      showSuccess('Payment marked as paid successfully');
       onUpdate();
       onClose();
     } catch (error: any) {
-      alert(`Failed to mark payment as paid: ${error.message}`);
+      showError(`Failed to mark payment as paid: ${error.message}`);
     }
   };
 
@@ -250,10 +254,11 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
     if (confirm('Are you sure you want to delete this payment?')) {
       try {
         await paymentService.deletePayment(payment.id);
+        showSuccess('Payment deleted successfully');
         onUpdate();
         onClose();
       } catch (error: any) {
-        alert(`Failed to delete payment: ${error.message}`);
+        showError(`Failed to delete payment: ${error.message}`);
       }
     }
   };
@@ -263,8 +268,9 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
     try {
       const receiptHTML = generatePaymentReceipt(payment, client);
       printReceipt(receiptHTML);
+      showInfo('Receipt generated successfully');
     } catch (error: any) {
-      alert(`Failed to print receipt: ${error.message}`);
+      showError(`Failed to print receipt: ${error.message}`);
     }
   };
 

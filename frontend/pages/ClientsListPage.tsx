@@ -6,6 +6,7 @@ import LoadMore from '../components/ui/LoadMore';
 import { Client, PaginatedResponse } from '../types';
 import { clientService } from '../services';
 import { usePagination } from '../hooks/usePagination';
+import { useToast } from '../context/ToastContext';
 
 const ClientCard: React.FC<{ client: Client }> = ({ client }) => {
     const fullName = client.full_name || `${client.first_name} ${client.last_name}`;
@@ -41,6 +42,8 @@ const ClientCard: React.FC<{ client: Client }> = ({ client }) => {
 }
 
 const ClientsListPage: React.FC = () => {
+    const { showSuccess, showError } = useToast();
+
     // Pagination hook
     const fetchClients = useCallback(
         async (page: number): Promise<PaginatedResponse<Client>> => {
@@ -105,6 +108,8 @@ const ClientsListPage: React.FC = () => {
             // Refresh the client list
             await refreshClients();
 
+            showSuccess(`Client ${firstName} ${lastName} created successfully`);
+
             // Close modal and reset form
             setShowAddModal(false);
             setFirstName('');
@@ -116,7 +121,7 @@ const ClientsListPage: React.FC = () => {
             setError('');
         } catch (error: any) {
             console.error('Error creating client:', error);
-            setError(error.message || 'Failed to create client. Please try again.');
+            showError(error.message || 'Failed to create client. Please try again.');
         } finally {
             setSubmitting(false);
         }

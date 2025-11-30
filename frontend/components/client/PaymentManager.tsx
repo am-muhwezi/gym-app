@@ -4,6 +4,7 @@ import { Card, Button, Modal, Input, Select, TextArea, Badge } from '../ui';
 import { paymentService, clientService } from '../../services';
 import { generatePaymentReceipt, printReceipt } from '../../services/receiptService';
 import { PaymentDetailsModal } from '../payments';
+import { useToast } from '../../context/ToastContext';
 
 interface PaymentManagerProps {
   clientId: string;
@@ -20,6 +21,7 @@ const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
 ];
 
 const PaymentManager: React.FC<PaymentManagerProps> = ({ clientId, client }) => {
+  const { showSuccess, showError, showWarning, showInfo } = useToast();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -55,18 +57,19 @@ const PaymentManager: React.FC<PaymentManagerProps> = ({ clientId, client }) => 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.amount || formData.amount <= 0) {
-      alert('Please enter a valid amount');
+      showWarning('Please enter a valid amount');
       return;
     }
 
     try {
       await paymentService.createPayment(formData);
+      showSuccess('Payment created successfully');
       setShowAddModal(false);
       resetForm();
       loadPayments();
     } catch (error: any) {
       console.error('Error creating payment:', error);
-      alert(`Failed to create payment: ${error.message}`);
+      showError(`Failed to create payment: ${error.message}`);
     }
   };
 
@@ -141,9 +144,10 @@ const PaymentManager: React.FC<PaymentManagerProps> = ({ clientId, client }) => 
       // Generate and print receipt
       const receiptHTML = generatePaymentReceipt(payment, client);
       printReceipt(receiptHTML);
+      showInfo('Receipt generated successfully');
     } catch (error) {
       console.error('Error generating receipt:', error);
-      alert('Failed to generate receipt');
+      showError('Failed to generate receipt');
     }
   };
 

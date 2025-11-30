@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Log, LogCreatePayload } from '../../types';
 import { Card, Button, Modal, Input, TextArea } from '../ui';
 import { logService } from '../../services';
+import { useToast } from '../../context/ToastContext';
 
 interface DailyLogsProps {
   clientId: string;
 }
 
 const DailyLogs: React.FC<DailyLogsProps> = ({ clientId }) => {
+  const { showSuccess, showError } = useToast();
   const [logs, setLogs] = useState<Log[]>([]);
   const [recentLogs, setRecentLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,8 +49,10 @@ const DailyLogs: React.FC<DailyLogsProps> = ({ clientId }) => {
     try {
       if (editingLog) {
         await logService.updateLog(editingLog.id, formData);
+        showSuccess('Log updated successfully');
       } else {
         await logService.createLog(clientId, formData);
+        showSuccess('Log created successfully');
       }
       setShowAddModal(false);
       setEditingLog(null);
@@ -56,7 +60,7 @@ const DailyLogs: React.FC<DailyLogsProps> = ({ clientId }) => {
       loadLogs();
     } catch (error) {
       console.error('Error saving log:', error);
-      alert('Failed to save log. Please try again.');
+      showError('Failed to save log. Please try again.');
     }
   };
 

@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
+    # 'django_extensions',  # Commented out - install if needed: pip install django-extensions
 ]
 
 AUTH_USER_MODEL = 'authentication.User'
@@ -93,7 +94,7 @@ CSRF_TRUSTED_ORIGINS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',  # Must be before CommonMiddleware
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -177,6 +178,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:5173")
 
 # Email Configuration (for password reset emails)
+# Note: Using Gmail API for sending emails (see authentication/gmail_utils.py)
 EMAIL_BACKEND = config("EMAIL_BACKEND", default='django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST = config("EMAIL_HOST", default='localhost')
 EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
@@ -184,3 +186,7 @@ EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
 EMAIL_HOST_USER = config("EMAIL_HOST_USER", default='')
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default='')
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default='noreply@trainrup.fit')
+
+# Gmail API Configuration
+# Path to the Gmail API token file (token.pkl)
+GMAIL_TOKEN_PATH = config("GMAIL_TOKEN_PATH", default=str(BASE_DIR / 'token.pkl'))

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useClients } from '../context/ClientContext';
+import { useToast } from '../context/ToastContext';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
@@ -178,7 +179,12 @@ const ClientDetailPage: React.FC = () => {
                                     <div className="py-2">
                                     <button
                                         onClick={() => {
-                                            exportService.exportGoals(client, goals, 'csv');
+                                            try {
+                                                exportService.exportGoals(client, goals, 'csv');
+                                                showSuccess('Goals exported successfully');
+                                            } catch (error: any) {
+                                                showError(error.message || 'Failed to export goals');
+                                            }
                                             setShowExportMenu(false);
                                         }}
                                         className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
@@ -187,7 +193,12 @@ const ClientDetailPage: React.FC = () => {
                                     </button>
                                     <button
                                         onClick={() => {
-                                            exportService.exportPayments(client, payments, 'csv');
+                                            try {
+                                                exportService.exportPayments(client, payments, 'csv');
+                                                showSuccess('Payments exported successfully');
+                                            } catch (error: any) {
+                                                showError(error.message || 'Failed to export payments');
+                                            }
                                             setShowExportMenu(false);
                                         }}
                                         className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
@@ -196,7 +207,12 @@ const ClientDetailPage: React.FC = () => {
                                     </button>
                                     <button
                                         onClick={() => {
-                                            exportService.exportWorkouts(client, workoutPlans, 'csv');
+                                            try {
+                                                exportService.exportWorkouts(client, workoutPlans, 'csv');
+                                                showSuccess('Workouts exported successfully');
+                                            } catch (error: any) {
+                                                showError(error.message || 'Failed to export workouts');
+                                            }
                                             setShowExportMenu(false);
                                         }}
                                         className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
@@ -431,6 +447,7 @@ const BioProgressTab: React.FC<{
     progress: ClientProgress[];
     onRefresh: () => void;
 }> = ({ client, progress, onRefresh }) => {
+    const { showSuccess, showError } = useToast();
     const [showAddModal, setShowAddModal] = useState(false);
     const [formData, setFormData] = useState({
         recorded_date: new Date().toISOString().split('T')[0],
@@ -453,18 +470,35 @@ const BioProgressTab: React.FC<{
     const handleSubmit = async () => {
         setSubmitting(true);
         try {
-            await progressService.createProgress(client.id, {
-                recorded_date: formData.recorded_date,
-                weight: formData.weight ? parseFloat(formData.weight) : undefined,
-                body_fat_percentage: formData.body_fat_percentage ? parseFloat(formData.body_fat_percentage) : undefined,
-                muscle_mass: formData.muscle_mass ? parseFloat(formData.muscle_mass) : undefined,
-                chest: formData.chest ? parseFloat(formData.chest) : undefined,
-                waist: formData.waist ? parseFloat(formData.waist) : undefined,
-                hips: formData.hips ? parseFloat(formData.hips) : undefined,
-                arms: formData.arms ? parseFloat(formData.arms) : undefined,
-                thighs: formData.thighs ? parseFloat(formData.thighs) : undefined,
-                notes: formData.notes || undefined,
-            });
+            // Map form fields to backend measurement types
+            const measurementMappings = [
+                { field: 'weight', type: 'weight', unit: 'kg' },
+                { field: 'body_fat_percentage', type: 'body_fat', unit: '%' },
+                { field: 'muscle_mass', type: 'muscle_mass', unit: 'kg' },
+                { field: 'chest', type: 'chest', unit: 'cm' },
+                { field: 'waist', type: 'waist', unit: 'cm' },
+                { field: 'hips', type: 'hips', unit: 'cm' },
+                { field: 'arms', type: 'arms', unit: 'cm' },
+                { field: 'thighs', type: 'thighs', unit: 'cm' },
+            ];
+
+            // Create individual measurement records for each non-empty field
+            const createPromises = measurementMappings
+                .filter(mapping => formData[mapping.field as keyof typeof formData] && formData[mapping.field as keyof typeof formData] !== '')
+                .map(mapping =>
+                    progressService.createMeasurement(client.id, {
+                        measurement_type: mapping.type,
+                        value: parseFloat(formData[mapping.field as keyof typeof formData] as string),
+                        unit: mapping.unit,
+                        measured_at: formData.recorded_date,
+                        notes: formData.notes || undefined,
+                    })
+                );
+
+            // Wait for all measurements to be created
+            await Promise.all(createPromises);
+
+            showSuccess('Progress measurements added successfully');
             await onRefresh();
             setShowAddModal(false);
             setFormData({
@@ -473,7 +507,7 @@ const BioProgressTab: React.FC<{
                 chest: '', waist: '', hips: '', arms: '', thighs: '', notes: '',
             });
         } catch (error: any) {
-            alert(`Failed to add progress: ${error.message}`);
+            showError(`Failed to add progress: ${error.message}`);
         } finally {
             setSubmitting(false);
         }
@@ -725,6 +759,7 @@ const BioProgressTab: React.FC<{
 
 // ============ WORKOUTS TAB ============
 const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
+    const { showSuccess, showError, showWarning } = useToast();
     const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlanType[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAddPlanModal, setShowAddPlanModal] = useState(false);
@@ -736,6 +771,8 @@ const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
         description: '',
         sets: 3,
         reps: 10,
+        weight: '',
+        rpe: '',
         rest_period_seconds: 60,
     });
 
@@ -757,34 +794,44 @@ const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
 
     const handleAddPlan = async () => {
         if (!newPlan.name.trim()) {
-            alert('Please enter a workout plan name');
+            showWarning('Please enter a workout plan name');
             return;
         }
 
         try {
             await workoutService.createWorkoutPlan(clientId, newPlan);
+            showSuccess('Workout plan created successfully');
             setNewPlan({ name: '', description: '' });
             setShowAddPlanModal(false);
             await loadWorkoutPlans();
         } catch (error: any) {
-            alert(`Failed to create workout plan: ${error.message}`);
+            showError(`Failed to create workout plan: ${error.message}`);
         }
     };
 
     const handleAddExercise = async () => {
         if (!selectedPlanId || !newExercise.name.trim()) {
-            alert('Please enter exercise name');
+            showWarning('Please enter exercise name');
             return;
         }
 
         try {
-            await workoutService.addExercise(clientId, selectedPlanId, newExercise);
-            setNewExercise({ name: '', description: '', sets: 3, reps: 10, rest_period_seconds: 60 });
+            await workoutService.addExercise(clientId, selectedPlanId, {
+                name: newExercise.name,
+                description: newExercise.description,
+                sets: newExercise.sets,
+                reps: newExercise.reps,
+                weight: newExercise.weight ? parseFloat(newExercise.weight) : undefined,
+                rpe: newExercise.rpe ? parseInt(newExercise.rpe) : undefined,
+                rest_period_seconds: newExercise.rest_period_seconds,
+            });
+            showSuccess('Exercise added successfully');
+            setNewExercise({ name: '', description: '', sets: 3, reps: 10, weight: '', rpe: '', rest_period_seconds: 60 });
             setShowAddExerciseModal(false);
             setSelectedPlanId(null);
             await loadWorkoutPlans();
         } catch (error: any) {
-            alert(`Failed to add exercise: ${error.message}`);
+            showError(`Failed to add exercise: ${error.message}`);
         }
     };
 
@@ -793,9 +840,10 @@ const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
 
         try {
             await workoutService.deleteExercise(clientId, planId, exerciseId);
+            showSuccess('Exercise removed successfully');
             await loadWorkoutPlans();
         } catch (error: any) {
-            alert(`Failed to delete exercise: ${error.message}`);
+            showError(`Failed to delete exercise: ${error.message}`);
         }
     };
 
@@ -804,9 +852,10 @@ const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
 
         try {
             await workoutService.deleteWorkoutPlan(clientId, planId);
+            showSuccess('Workout plan deleted successfully');
             await loadWorkoutPlans();
         } catch (error: any) {
-            alert(`Failed to delete workout plan: ${error.message}`);
+            showError(`Failed to delete workout plan: ${error.message}`);
         }
     };
 
@@ -861,7 +910,10 @@ const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
                                                 <div>
                                                     <p className="font-semibold text-white">{exercise.name}</p>
                                                     <p className="text-sm text-gray-400">
-                                                        {exercise.sets} sets × {exercise.reps} reps • Rest: {exercise.rest_period_seconds}s
+                                                        {exercise.sets} sets × {exercise.reps} reps
+                                                        {exercise.weight && ` @ ${exercise.weight}kg`}
+                                                        {exercise.rpe && ` • RPE: ${exercise.rpe}/10`}
+                                                        {' '}• Rest: {exercise.rest_period_seconds}s
                                                     </p>
                                                     {exercise.description && (
                                                         <p className="text-xs text-gray-500 mt-1">{exercise.description}</p>
@@ -953,7 +1005,7 @@ const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
                                     rows={2}
                                 />
                             </div>
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm text-gray-400 mb-2">Sets</label>
                                     <input
@@ -974,7 +1026,30 @@ const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-gray-400 mb-2">Rest (s)</label>
+                                    <label className="block text-sm text-gray-400 mb-2">Weight (kg)</label>
+                                    <input
+                                        type="number"
+                                        step="0.5"
+                                        value={newExercise.weight}
+                                        onChange={(e) => setNewExercise({ ...newExercise, weight: e.target.value })}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                        placeholder="Optional"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-2">RPE (1-10)</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="10"
+                                        value={newExercise.rpe}
+                                        onChange={(e) => setNewExercise({ ...newExercise, rpe: e.target.value })}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                        placeholder="Optional"
+                                    />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-sm text-gray-400 mb-2">Rest Period (seconds)</label>
                                     <input
                                         type="number"
                                         value={newExercise.rest_period_seconds}
@@ -1007,6 +1082,7 @@ const LogsTab: React.FC<{
     logs: Log[];
     onRefresh: () => void;
 }> = ({ clientId, logs, onRefresh }) => {
+    const { showSuccess, showError, showWarning } = useToast();
     const [showAddModal, setShowAddModal] = useState(false);
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
@@ -1017,13 +1093,14 @@ const LogsTab: React.FC<{
 
     const handleSubmit = async () => {
         if (!formData.notes) {
-            alert('Please add some notes');
+            showWarning('Please add some notes');
             return;
         }
 
         setSubmitting(true);
         try {
             await logService.createLog(clientId, formData);
+            showSuccess('Activity log added successfully');
             await onRefresh();
             setShowAddModal(false);
             setFormData({
@@ -1032,7 +1109,7 @@ const LogsTab: React.FC<{
                 performance_rating: 3,
             });
         } catch (error: any) {
-            alert(`Failed to create log: ${error.message}`);
+            showError(`Failed to create log: ${error.message}`);
         } finally {
             setSubmitting(false);
         }
@@ -1151,6 +1228,7 @@ const PaymentsTab: React.FC<{
     payments: Payment[];
     onRefresh: () => void;
 }> = ({ clientId, payments, onRefresh }) => {
+    const { showSuccess, showError, showWarning } = useToast();
     const [showAddModal, setShowAddModal] = useState(false);
     const [formData, setFormData] = useState({
         amount: '',
@@ -1162,7 +1240,7 @@ const PaymentsTab: React.FC<{
 
     const handleCreatePayment = async () => {
         if (!formData.amount) {
-            alert('Please enter an amount');
+            showWarning('Please enter an amount');
             return;
         }
 
@@ -1175,11 +1253,12 @@ const PaymentsTab: React.FC<{
                 description: formData.description || undefined,
                 due_date: formData.due_date || undefined,
             });
+            showSuccess('Payment created successfully');
             await onRefresh();
             setShowAddModal(false);
             setFormData({ amount: '', method: 'cash', description: 'Monthly Membership', due_date: '' });
         } catch (error: any) {
-            alert(`Failed to create payment: ${error.message}`);
+            showError(`Failed to create payment: ${error.message}`);
         } finally {
             setSubmitting(false);
         }
@@ -1192,9 +1271,10 @@ const PaymentsTab: React.FC<{
                 method: method,
                 payment_date: new Date().toISOString()
             });
+            showSuccess('Payment marked as paid');
             await onRefresh();
         } catch (error: any) {
-            alert(`Failed to update payment: ${error.message}`);
+            showError(`Failed to update payment: ${error.message}`);
         }
     };
 

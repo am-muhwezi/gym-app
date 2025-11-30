@@ -4,11 +4,10 @@ from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
-from django.core.mail import send_mail, EmailMultiAlternatives
-from django.template.loader import render_to_string
 from django.conf import settings
 from .models import User, PasswordResetToken
 from . import serializers
+from .gmail_utils import send_password_reset_email
 import logging
 
 logger = logging.getLogger(__name__)
@@ -111,50 +110,30 @@ class PasswordResetRequestView(generics.GenericAPIView):
                 # Create new reset token
                 reset_token = PasswordResetToken.objects.create(user=user)
 
-                # In production, you would send an email with the reset link
-                # For now, we'll return the token in the response for development
-                # The frontend URL would be something like: http://yourapp.com/reset-password?token=<token>
+                # Build password reset URL
                 reset_url = f"{settings.FRONTEND_URL}/#/reset-password?token={reset_token.token}"
 
+                # Send password reset email using Gmail API
                 try:
-                    # Render HTML email template
-                    html_content = render_to_string('authentication/password_reset_email.html', {
-                        'username': user.username,
-                        'reset_url': reset_url,
-                    })
-
-                    # Plain text fallback
-                    text_content = f'''Hello {user.username},
-
-You have requested to reset your password for your TrainrUp account.
-
-Click the link below to reset your password:
-
-{reset_url}
-
-This link will expire in 1 hour.
-
-If you did not request this password reset, please ignore this email.
-
-Best regards,
-The TrainrUp Team
-'''
-
-                    # Create email with both HTML and plain text
-                    email = EmailMultiAlternatives(
-                        subject='Password Reset - TrainrUp',
-                        body=text_content,
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        to=[user.email],
+                    email_sent = send_password_reset_email(
+                        user_email=user.email,
+                        username=user.username,
+                        reset_url=reset_url
                     )
-                    email.attach_alternative(html_content, "text/html")
-                    email.send(fail_silently=False)
 
-                    logger.info(f"Password reset email sent to {user.email}")
+                    if email_sent:
+                        logger.info(f"Password reset email sent to {user.email}")
+                    else:
+                        logger.error(f"Failed to send password reset email to {user.email}")
+                        # For development, you can return the reset_url if email fails
+                        # Remove this in production for security
+                        return Response({
+                            "message": "Password reset token created. Email sending failed.",
+                            "reset_url": reset_url  # Remove this in production
+                        }, status=status.HTTP_200_OK)
+
                 except Exception as e:
-                    # Log the error but don't expose it to the user
-                    logger.error(f"Failed to send password reset email: {str(e)}")
-                    # For development, return the token
+                    logger.error(f"Error sending password reset email: {str(e)}")
                     return Response({
                         "message": "Password reset token created. Email sending failed.",
                         "reset_url": reset_url  # Remove this in production

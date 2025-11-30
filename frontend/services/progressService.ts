@@ -9,11 +9,56 @@ import type { ClientProgress, ProgressCreatePayload } from '../types';
 export const progressService = {
   /**
    * Get all progress records for a client
+   * Transforms individual measurements into grouped progress records by date
    */
   async getClientProgress(clientId: string): Promise<ClientProgress[]> {
-    return apiClient.get<ClientProgress[]>('/clients/progress/', {
+    const measurements = await apiClient.get<any[]>('/clients/progress/', {
       params: { client: clientId },
     });
+
+    // Group measurements by date
+    const groupedByDate = measurements.reduce((acc: any, measurement: any) => {
+      const date = measurement.measured_at;
+      if (!acc[date]) {
+        acc[date] = {
+          id: `grouped-${date}`,
+          client: measurement.client,
+          recorded_date: date,
+          notes: measurement.notes || '',
+          created_at: measurement.created_at,
+          updated_at: measurement.updated_at,
+        };
+      }
+
+      // Map measurement types to progress fields
+      const fieldMap: any = {
+        'weight': 'weight',
+        'body_fat': 'body_fat_percentage',
+        'muscle_mass': 'muscle_mass',
+        'chest': 'chest',
+        'waist': 'waist',
+        'hips': 'hips',
+        'arms': 'arms',
+        'thighs': 'thighs',
+      };
+
+      const field = fieldMap[measurement.measurement_type];
+      if (field) {
+        acc[date][field] = parseFloat(measurement.value);
+      }
+
+      // Combine notes if they exist
+      if (measurement.notes && !acc[date].notes) {
+        acc[date].notes = measurement.notes;
+      }
+
+      return acc;
+    }, {});
+
+    // Convert to array and sort by date descending
+    return Object.values(groupedByDate).sort((a: any, b: any) =>
+      new Date(b.recorded_date).getTime() - new Date(a.recorded_date).getTime()
+    );
   },
 
   /**
@@ -36,6 +81,22 @@ export const progressService = {
    */
   async createProgress(clientId: string, data: ProgressCreatePayload): Promise<ClientProgress> {
     return apiClient.post<ClientProgress>('/clients/progress/', {
+      ...data,
+      client: clientId,
+    });
+  },
+
+  /**
+   * Create a new individual measurement record
+   */
+  async createMeasurement(clientId: string, data: {
+    measurement_type: string;
+    value: number;
+    unit: string;
+    measured_at: string;
+    notes?: string;
+  }): Promise<any> {
+    return apiClient.post('/clients/progress/', {
       ...data,
       client: clientId,
     });
