@@ -126,3 +126,61 @@ The TrainrUp Team
     except Exception as e:
         logger.error(f"Failed to send password reset email: {str(e)}")
         return False
+
+
+def send_terms_notification_email(user_email, username, terms_url):
+    """
+    Send a terms and conditions notification email using the Gmail API.
+
+    Args:
+        user_email (str): User's email address
+        username (str): User's username
+        terms_url (str): URL to the terms and conditions page
+
+    Returns:
+        bool: True if email was sent successfully, False otherwise
+    """
+    from django.template.loader import render_to_string
+
+    try:
+        # Render HTML email template
+        html_content = render_to_string('authentication/terms-notification-email.html', {
+            'username': username,
+            'terms_url': terms_url,
+        })
+
+        # Plain text fallback
+        text_content = f'''Hello {username},
+
+Welcome to TrainrUp! We're excited to have you join our platform for fitness trainers and coaches.
+
+Before you get started, please take a moment to review and accept our Terms and Conditions. This is an important step to ensure you understand your rights and responsibilities when using TrainrUp.
+
+Click the link below to review and accept our terms:
+
+{terms_url}
+
+What's included in the Terms:
+- Service description and features
+- Subscription plans and pricing
+- Data privacy and security
+- User responsibilities
+- Payment terms and refund policy
+
+If you have any questions or concerns about our Terms and Conditions, please don't hesitate to reach out to us at trainer@trainrup.fit or call us at +254 799 632165.
+
+Thank you,
+The TrainrUp Team
+'''
+
+        # Send email using Gmail API
+        return send_gmail(
+            to_email=user_email,
+            subject='Please Review and Accept TrainrUp Terms and Conditions',
+            html_body=html_content,
+            text_body=text_content
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to send terms notification email: {str(e)}")
+        return False

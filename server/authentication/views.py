@@ -5,8 +5,12 @@ from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from django.conf import settings
-from .models import User, PasswordResetToken
+from django.db.models import Count, Q, Sum
+from django.utils import timezone
+from datetime import timedelta
+from .models import User, PasswordResetToken, TermsAcceptance
 from . import serializers
+from .permissions import IsAdmin
 from .gmail_utils import send_password_reset_email
 import logging
 
@@ -207,3 +211,211 @@ class PasswordResetConfirmView(generics.GenericAPIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# Admin Trainer Management Views
+
+class TrainerListView(generics.ListAPIView):
+    """List all trainer accounts (admin only) - SaaS perspective"""
+    serializer_class = serializers.TrainerSerializer
+    permission_classes = [IsAdmin]
+
+    def get_queryset(self):
+        return User.objects.filter(user_type='trainer').order_by('-date_joined')
+
+
+class TrainerDetailView(generics.RetrieveAPIView):
+    """Get specific trainer account details (admin only) - SaaS perspective"""
+    serializer_class = serializers.TrainerSerializer
+    permission_classes = [IsAdmin]
+    queryset = User.objects.filter(user_type='trainer')
+
+
+class TrainerCreateView(generics.CreateAPIView):
+    """Create a new trainer (admin only)"""
+    serializer_class = serializers.TrainerCreateSerializer
+    permission_classes = [IsAdmin]
+
+
+class TrainerUpdateView(generics.UpdateAPIView):
+    """Update trainer details (admin only)"""
+    serializer_class = serializers.TrainerUpdateSerializer
+    permission_classes = [IsAdmin]
+    queryset = User.objects.filter(user_type='trainer')
+
+
+class TrainerDeleteView(generics.DestroyAPIView):
+    """Delete a trainer (admin only)"""
+    permission_classes = [IsAdmin]
+    queryset = User.objects.filter(user_type='trainer')
+
+
+class TrainerToggleActiveView(APIView):
+    """Toggle trainer active status (admin only)"""
+    permission_classes = [IsAdmin]
+
+    def patch(self, request, pk):
+        try:
+            trainer = User.objects.get(pk=pk, user_type='trainer')
+            trainer.is_active = not trainer.is_active
+            trainer.save()
+
+            return Response({
+                'message': f'Trainer {"activated" if trainer.is_active else "suspended"} successfully',
+                'is_active': trainer.is_active
+            }, status=status.HTTP_200_OK)
+
+        except User.DoesNotExist:
+            return Response({
+                'error': 'Trainer not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
+class TrainerResetPasswordView(APIView):
+    """Reset trainer password (admin only)"""
+    permission_classes = [IsAdmin]
+
+    def post(self, request, pk):
+        try:
+            trainer = User.objects.get(pk=pk, user_type='trainer')
+            new_password = request.data.get('new_password')
+
+            if not new_password:
+                return Response({
+                    'error': 'New password is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if len(new_password) < 6:
+                return Response({
+                    'error': 'Password must be at least 6 characters'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Reset the password
+            trainer.set_password(new_password)
+            trainer.save()
+
+            logger.info(f"Admin {request.user.username} reset password for trainer {trainer.username}")
+
+            return Response({
+                'message': f'Password reset successfully for trainer {trainer.username}'
+            }, status=status.HTTP_200_OK)
+
+        except User.DoesNotExist:
+            return Response({
+                'error': 'Trainer not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
+class AdminAnalyticsView(APIView):
+    """Platform-level analytics for admin (SaaS perspective)"""
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        from clients.models import Client
+        from payments.models import Payment
+        from bookings.models import Booking
+
+        # Count trainers
+        total_trainers = User.objects.filter(user_type='trainer').count()
+        active_trainers = User.objects.filter(user_type='trainer', is_active=True).count()
+        suspended_trainers = User.objects.filter(user_type='trainer', is_active=False).count()
+
+        # Recent registrations (last 30 days)
+        thirty_days_ago = timezone.now() - timedelta(days=30)
+        new_trainers_this_month = User.objects.filter(
+            user_type='trainer',
+            date_joined__gte=thirty_days_ago
+        ).count()
+
+        # Trainer activity (who logged in recently)
+        seven_days_ago = timezone.now() - timedelta(days=7)
+        active_last_7_days = User.objects.filter(
+            user_type='trainer',
+            last_login__gte=seven_days_ago
+        ).count()
+
+        # Platform-wide stats (total ecosystem size)
+        total_clients_on_platform = Client.objects.count()
+        total_bookings_on_platform = Booking.objects.count()
+        total_payments_on_platform = Payment.objects.filter(payment_status='completed').count()
+
+        # Revenue if you charge trainers subscription fees (placeholder)
+        # In a real SaaS, you'd have a Subscription model tracking trainer payments to you
+
+        return Response({
+            'trainers': {
+                'total': total_trainers,
+                'active': active_trainers,
+                'suspended': suspended_trainers,
+                'new_this_month': new_trainers_this_month,
+                'active_last_7_days': active_last_7_days,
+            },
+            'platform': {
+                'total_clients': total_clients_on_platform,
+                'total_bookings': total_bookings_on_platform,
+                'total_completed_payments': total_payments_on_platform,
+            },
+            'note': 'These are platform-wide statistics showing the size of your trainer ecosystem'
+        }, status=status.HTTP_200_OK)
+
+
+# Terms and Conditions Views
+
+class TermsPageView(APIView):
+    """Serve the terms and conditions HTML page"""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return render(request, 'authentication/terms-and-conditions.html')
+
+
+class TermsAcceptanceView(generics.CreateAPIView):
+    """Accept terms and conditions"""
+    serializer_class = serializers.TermsAcceptanceSerializer
+    permission_classes = [AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'message': 'Terms and conditions accepted successfully',
+                'data': serializer.data
+            }, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TermsAcceptanceStatusView(APIView):
+    """Check if a user has accepted terms"""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        email = request.query_params.get('email')
+
+        if not email:
+            return Response({
+                'error': 'Email parameter is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email=email)
+            has_accepted = hasattr(user, 'terms_acceptance')
+
+            if has_accepted:
+                acceptance = user.terms_acceptance
+                return Response({
+                    'has_accepted': True,
+                    'accepted_at': acceptance.accepted_at,
+                    'version': acceptance.version
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    'has_accepted': False
+                }, status=status.HTTP_200_OK)
+
+        except User.DoesNotExist:
+            return Response({
+                'error': 'User not found'
+            }, status=status.HTTP_404_NOT_FOUND)

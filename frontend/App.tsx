@@ -16,10 +16,28 @@ import ClientDetailPage from './pages/ClientDetailPage';
 import PaymentsPage from './pages/PaymentsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import BookingsPage from './pages/BookingsPage';
+import TrainersPage from './pages/TrainersPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
+
+// Terms Redirect Component
+const TermsRedirect: React.FC = () => {
+  React.useEffect(() => {
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/terms/`;
+  }, []);
+
+  return (
+    <div className="flex items-center justify-center h-screen bg-dark-900">
+      <p className="text-gray-400">Redirecting to Terms and Conditions...</p>
+    </div>
+  );
+};
 
 // Protected Route Component
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean }> = ({
+  children,
+  adminOnly = false
+}) => {
+  const { isAuthenticated, loading, user } = useAuth();
 
   if (loading) {
     return (
@@ -31,6 +49,19 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Check admin access
+  const isAdmin = user?.user_type === 'admin' || user?.is_superuser;
+
+  if (adminOnly && !isAdmin) {
+    // Redirect trainers trying to access admin routes
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (!adminOnly && isAdmin) {
+    // Redirect admins trying to access trainer routes
+    return <Navigate to="/admin/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -64,6 +95,7 @@ const App: React.FC = () => {
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/terms" element={<TermsRedirect />} />
 
             {/* Protected Routes */}
             <Route
@@ -74,6 +106,30 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
+
+            {/* Admin Routes (SaaS Platform Owner) */}
+            <Route
+              path="/admin/dashboard"
+              element={
+                <ProtectedRoute adminOnly>
+                  <MainLayout>
+                    <AdminDashboardPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/trainers"
+              element={
+                <ProtectedRoute adminOnly>
+                  <MainLayout>
+                    <TrainersPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Trainer Routes (Business Owners) */}
             <Route
               path="/dashboard"
               element={
