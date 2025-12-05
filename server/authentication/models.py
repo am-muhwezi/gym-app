@@ -88,3 +88,19 @@ class PasswordResetToken(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+
+class TermsAcceptance(models.Model):
+    """Model to track when users accept Terms and Conditions"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='terms_acceptance')
+    accepted_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    version = models.CharField(max_length=50, default='1.0')  # Track version of terms accepted
+
+    def __str__(self):
+        return f"Terms accepted by {self.user.email} on {self.accepted_at}"
+
+    class Meta:
+        ordering = ['-accepted_at']
+        verbose_name_plural = "Terms Acceptances"

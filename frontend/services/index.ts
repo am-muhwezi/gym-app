@@ -15,3 +15,4 @@ export { exportService } from './exportService';
 export { generatePaymentReceipt, printReceipt } from './receiptService';
 export { bookingService } from './bookingService';
 export { analyticsService } from './analyticsService';
+export { trainerService } from './trainerService';

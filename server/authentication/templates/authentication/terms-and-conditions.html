@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms and Conditions – TrainrUp</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #E8F9F3 0%, #D1F2E6 100%);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            color: #334155;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+            background: #1ab681;
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .logo svg {
+            width: 32px;
+            height: 32px;
+            color: white;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0F172A;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #64748B;
+            font-size: 0.95rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 2.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .content {
+            max-height: 500px;
+            overflow-y: auto;
+            margin-bottom: 2rem;
+        }
+
+        .content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .content::-webkit-scrollbar-track {
+            background: #F1F5F9;
+            border-radius: 10px;
+        }
+
+        .content::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 10px;
+        }
+
+        .content::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+
+        section {
+            margin-bottom: 2rem;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0F172A;
+            margin-bottom: 0.75rem;
+        }
+
+        p {
+            line-height: 1.7;
+            color: #475569;
+            margin-bottom: 0.5rem;
+        }
+
+        ul {
+            list-style: disc;
+            margin-left: 2rem;
+            color: #475569;
+        }
+
+        ul li {
+            margin-bottom: 0.25rem;
+            line-height: 1.6;
+        }
+
+        .highlight-box {
+            background: #E8F9F3;
+            border: 1px solid #A5E4CC;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 0.75rem 0;
+        }
+
+        .highlight-box ul {
+            margin: 0;
+            list-style: none;
+        }
+
+        .highlight-box ul li {
+            margin-bottom: 0.5rem;
+        }
+
+        .contact-box {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .contact-box p {
+            margin-bottom: 0.25rem;
+        }
+
+        .contact-box a {
+            color: #1ab681;
+            text-decoration: none;
+        }
+
+        .contact-box a:hover {
+            color: #15956b;
+            text-decoration: underline;
+        }
+
+        .acceptance-section {
+            border-top: 2px solid #E2E8F0;
+            padding-top: 2rem;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: #F8FAFC;
+            border-radius: 0.5rem;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 0.75rem;
+            margin-top: 2px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .checkbox-container label {
+            cursor: pointer;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 0.5rem;
+        }
+
+        input[type="email"],
+        input[type="text"] {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #CBD5E1;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        input[type="email"]:focus,
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #1ab681;
+            box-shadow: 0 0 0 3px rgba(26, 182, 129, 0.1);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.875rem 2rem;
+            background: #1ab681;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: #15956b;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(26, 182, 129, 0.3);
+        }
+
+        .btn:disabled {
+            background: #CBD5E1;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .success-message {
+            display: none;
+            background: #ECFDF5;
+            border: 1px solid #6EE7B7;
+            color: #065F46;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .error-message {
+            display: none;
+            background: #FEF2F2;
+            border: 1px solid #FECACA;
+            color: #991B1B;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .show {
+            display: block !important;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem 0.5rem;
+            }
+
+            .card {
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+            </div>
+            <h1>Terms and Conditions – TrainrUp</h1>
+            <p class="subtitle">Last Updated: 4th December, 2025</p>
+            <p class="subtitle">Governing Jurisdiction: Republic of Kenya</p>
+        </div>
+
+        <!-- Main Card -->
+        <div class="card">
+            <!-- Success/Error Messages -->
+            <div class="success-message" id="successMessage">
+                ✓ Thank you! Your acceptance has been recorded successfully.
+            </div>
+            <div class="error-message" id="errorMessage">
+                Please fill in all required fields and accept the terms.
+            </div>
+
+            <!-- Terms Content -->
+            <div class="content">
+                <section>
+                    <h2>1. Acceptance of Terms</h2>
+                    <p>By creating an account or using TrainrUp, you agree to comply with these Terms and Conditions and all applicable laws of the Republic of Kenya.</p>
+                </section>
+
+                <section>
+                    <h2>2. Description of Services</h2>
+                    <p>TrainrUp provides client-management tools for fitness trainers, coaches, and gyms, including client management, scheduling, payment tracking, workout planning, progress monitoring, and analytics. Features may change as the platform grows.</p>
+                </section>
+
+                <section>
+                    <h2>3. Eligibility</h2>
+                    <p>Users must:</p>
+                    <ul>
+                        <li>Be 18 years or older</li>
+                        <li>Use TrainrUp for lawful business purposes</li>
+                        <li>Provide accurate registration information when signing up. These include trainer name and email address.</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2>4. User Responsibilities</h2>
+                    <p>Users must:</p>
+                    <ul>
+                        <li>Keep login credentials secure</li>
+                        <li>Ensure accuracy of all uploaded client information</li>
+                        <li>Use the system in compliance with Kenyan data protection laws</li>
+                        <li>Be responsible for all services provided to clients outside the platform</li>
+                    </ul>
+                    <p style="margin-top: 0.5rem;">TrainrUp is not liable for actions or outcomes related to fitness training.</p>
+                </section>
+
+                <section>
+                    <h2>5. Subscription & Payment</h2>
+                    <div class="highlight-box">
+                        <ul>
+                            <li><strong>Monthly plan:</strong> KES 6,000/month</li>
+                            <li><strong>Quarterly plan:</strong> KES 16,500 every 3 months (discounted)</li>
+                            <li><strong>Bi-annual plan:</strong> KES 31,000 every 6 months (discounted)</li>
+                            <li><strong>Annual plan:</strong> KES 60,000 yearly (discounted)</li>
+                        </ul>
+                    </div>
+                    <ul>
+                        <li>Prices may change as TrainrUp adds more features</li>
+                        <li>No refunds once payments are made</li>
+                        <li>Non-payment after the due date will result in account suspension</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2>6. Intellectual Property</h2>
+                    <p>All branding, software, design, and content are owned by TrainrUp. Users may not copy, resell, or reverse-engineer the platform.</p>
+                </section>
+
+                <section>
+                    <h2>7. Data Privacy & Security</h2>
+                    <p>TrainrUp will comply with the <strong>Kenya Data Protection Act, 2019</strong>. Users retain ownership of client data but must ensure they collect and store data lawfully. TrainrUp will take reasonable security measures to protect data security but cannot guarantee 100% protection against breaches.</p>
+                </section>
+
+                <section>
+                    <h2>8. Prohibited Use</h2>
+                    <p>TrainrUp may not be used for:</p>
+                    <ul>
+                        <li>Fraud</li>
+                        <li>Harassment or exploitation of clients</li>
+                        <li>Uploading harmful software</li>
+                        <li>Unauthorized marketing or spam</li>
+                    </ul>
+                    <p style="margin-top: 0.5rem;">Accounts will be terminated for violations.</p>
+                </section>
+
+                <section>
+                    <h2>9. Service Availability</h2>
+                    <p>Although we strive for continuous uptime, TrainrUp may experience temporary interruptions due to maintenance or technical issues. TrainrUp is not responsible for business losses during downtime.</p>
+                </section>
+
+                <section>
+                    <h2>10. Limitation of Liability</h2>
+                    <p>To the fullest extent permitted under <strong>Kenyan law</strong>, TrainrUp is not liable for:</p>
+                    <ul>
+                        <li>Injuries or outcomes related to fitness training</li>
+                        <li>Loss of revenue or data</li>
+                        <li>User mistakes or misuse of the system</li>
+                    </ul>
+                    <p style="margin-top: 0.5rem;">TrainrUp offers tools but is not responsible for training outcomes.</p>
+                </section>
+
+                <section>
+                    <h2>11. Termination</h2>
+                    <ul>
+                        <li>Users may cancel subscriptions anytime</li>
+                        <li>TrainrUp may suspend or terminate accounts that violate these Terms</li>
+                        <li>Fees already paid are non-refundable</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2>12. Changes to Terms</h2>
+                    <p>TrainrUp may update these Terms periodically. Continued use of the platform constitutes acceptance of any changes.</p>
+                </section>
+
+                <section>
+                    <h2>13. Governing Law</h2>
+                    <p>These Terms are governed by and interpreted according to the <strong>laws of the Republic of Kenya</strong>. Any disputes shall be resolved within the Kenyan legal system.</p>
+                </section>
+
+                <section>
+                    <h2>14. Contact Information</h2>
+                    <p>For questions or support, contact:</p>
+                    <div class="contact-box">
+                        <p><strong>Email:</strong> <a href="mailto:trainer@trainrup.fit">trainer@trainrup.fit</a></p>
+                        <p><strong>Phone:</strong> <a href="tel:+254799632165">+254 799 632165</a></p>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Acceptance Section -->
+            <div class="acceptance-section">
+                <h2 style="margin-bottom: 1.5rem;">Accept Terms and Conditions</h2>
+
+                <!-- Error Message in Form -->
+                <div class="error-message" id="formErrorMessage" style="display: none;">
+                    Error message here
+                </div>
+
+                <!-- Success Message in Form -->
+                <div class="success-message" id="formSuccessMessage" style="display: none;">
+                    ✓ Success message here
+                </div>
+
+                <form id="acceptanceForm">
+                    <div class="form-group">
+                        <label for="name">Full Name *</label>
+                        <input type="text" id="name" name="name" required placeholder="Enter your full name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email Address *</label>
+                        <input type="email" id="email" name="email" required placeholder="trainer@example.com">
+                        <p style="margin-top: 0.5rem; color: #64748B; font-size: 0.875rem;">
+                            Please use your registered TrainrUp email address
+                        </p>
+                    </div>
+
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="acceptTerms" name="acceptTerms" required>
+                        <label for="acceptTerms">
+                            I have read and agree to the Terms and Conditions outlined above. I understand that by accepting these terms, I am entering into a legally binding agreement with TrainrUp.
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn" id="submitBtn">
+                        Accept Terms and Conditions
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get the API URL from the current domain
+        const API_BASE_URL = window.location.origin.replace('8000', '8000') + '/api/auth';
+
+        document.getElementById('acceptanceForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const acceptTerms = document.getElementById('acceptTerms').checked;
+            const successMessage = document.getElementById('formSuccessMessage');
+            const errorMessage = document.getElementById('formErrorMessage');
+            const submitBtn = document.getElementById('submitBtn');
+
+            // Hide previous messages
+            successMessage.style.display = 'none';
+            errorMessage.style.display = 'none';
+
+            // Validate
+            if (!name || !email || !acceptTerms) {
+                errorMessage.textContent = 'Please fill in all required fields and accept the terms.';
+                errorMessage.style.display = 'block';
+                // Scroll to error message
+                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+
+            // Disable button
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+
+            // Prepare data for API
+            const acceptanceData = {
+                user_email: email,
+                user_name: name
+            };
+
+            try {
+                // Make API call to backend
+                const response = await fetch(`${API_BASE_URL}/terms/accept/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(acceptanceData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // Success!
+                    successMessage.textContent = '✓ Thank you! Your acceptance has been recorded successfully.';
+                    successMessage.style.display = 'block';
+                    submitBtn.textContent = '✓ Accepted';
+                    submitBtn.style.background = '#10B981';
+
+                    // Scroll to success message
+                    successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    // Reset form after 3 seconds
+                    setTimeout(() => {
+                        document.getElementById('acceptanceForm').reset();
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Accept Terms and Conditions';
+                        submitBtn.style.background = '#1ab681';
+                    }, 3000);
+                } else {
+                    // Handle error
+                    let errorMsg = 'An error occurred. Please try again.';
+
+                    if (result.user_email) {
+                        // Check for specific error messages
+                        const emailError = Array.isArray(result.user_email) ? result.user_email[0] : result.user_email;
+
+                        if (emailError.includes('does not exist') || emailError.includes('not exist')) {
+                            errorMsg = 'This email is not registered. Please use your registered TrainrUp email address.';
+                        } else if (emailError.includes('already accepted')) {
+                            errorMsg = 'You have already accepted the terms with this email.';
+                        } else {
+                            errorMsg = emailError;
+                        }
+                    } else if (result.error) {
+                        errorMsg = result.error;
+                    } else if (result.non_field_errors) {
+                        errorMsg = result.non_field_errors[0];
+                    }
+
+                    errorMessage.textContent = errorMsg;
+                    errorMessage.style.display = 'block';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Accept Terms and Conditions';
+
+                    // Scroll to error message
+                    errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            } catch (error) {
+                console.error('Error submitting terms acceptance:', error);
+                errorMessage.textContent = 'Network error. Please check your connection and try again.';
+                errorMessage.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Accept Terms and Conditions';
+
+                // Scroll to error message
+                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+    </script>
+</body>
+</html>

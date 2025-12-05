@@ -249,6 +249,7 @@ export interface User {
   email: string;
   phone_number: string;
   user_type: 'trainer' | 'client' | 'admin';
+  is_superuser: boolean;
 }
 
 export interface LoginCredentials {
@@ -259,6 +260,54 @@ export interface LoginCredentials {
 export interface AuthResponse {
   token: string;
   user: User;
+}
+
+// ============ TRAINER MANAGEMENT TYPES (SaaS Admin) ============
+export interface Trainer {
+  id: string;
+  username: string;
+  email: string;
+  phone_number: string;
+  user_type: 'trainer';
+  is_active: boolean;
+  is_staff: boolean;
+  date_joined: string;
+  last_login?: string;
+}
+
+export interface TrainerCreatePayload {
+  username: string;
+  email: string;
+  phone_number: string;
+  password?: string;
+}
+
+export interface TrainerUpdatePayload {
+  username?: string;
+  email?: string;
+  phone_number?: string;
+  is_active?: boolean;
+}
+
+export interface TrainerResetPasswordPayload {
+  new_password: string;
+}
+
+// ============ ADMIN ANALYTICS TYPES (Platform-level) ============
+export interface AdminAnalytics {
+  trainers: {
+    total: number;
+    active: number;
+    suspended: number;
+    new_this_month: number;
+    active_last_7_days: number;
+  };
+  platform: {
+    total_clients: number;
+    total_bookings: number;
+    total_completed_payments: number;
+  };
+  note: string;
 }
 
 // ============ API RESPONSE TYPES ============
