@@ -56,8 +56,9 @@ def send_email():
     print(f"  - Type: {user.user_type}")
     print()
 
-    # Build terms URL
-    terms_url = f"{settings.FRONTEND_URL}/#/terms"
+    # Build terms URL - use backend directly
+    backend_url = settings.FRONTEND_URL.replace('3000', '8000').replace('5173', '8000')
+    terms_url = f"{backend_url.replace('http://localhost:3000', 'http://localhost:8000')}/api/auth/terms/"
     print(f"Terms URL: {terms_url}")
     print()
     print("Sending email...")

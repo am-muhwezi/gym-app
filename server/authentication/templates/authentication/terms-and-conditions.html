@@ -251,6 +251,7 @@
             border-radius: 0.5rem;
             margin-bottom: 1rem;
             text-align: center;
+            font-weight: 600;
         }
 
         .error-message {
@@ -262,6 +263,7 @@
             border-radius: 0.5rem;
             margin-bottom: 1rem;
             text-align: center;
+            font-weight: 600;
         }
 
         .show {
@@ -433,6 +435,16 @@
             <div class="acceptance-section">
                 <h2 style="margin-bottom: 1.5rem;">Accept Terms and Conditions</h2>
 
+                <!-- Error Message in Form -->
+                <div class="error-message" id="formErrorMessage" style="display: none;">
+                    Error message here
+                </div>
+
+                <!-- Success Message in Form -->
+                <div class="success-message" id="formSuccessMessage" style="display: none;">
+                    ✓ Success message here
+                </div>
+
                 <form id="acceptanceForm">
                     <div class="form-group">
                         <label for="name">Full Name *</label>
@@ -442,6 +454,9 @@
                     <div class="form-group">
                         <label for="email">Email Address *</label>
                         <input type="email" id="email" name="email" required placeholder="trainer@example.com">
+                        <p style="margin-top: 0.5rem; color: #64748B; font-size: 0.875rem;">
+                            Please use your registered TrainrUp email address
+                        </p>
                     </div>
 
                     <div class="checkbox-container">
@@ -469,18 +484,20 @@
             const name = document.getElementById('name').value.trim();
             const email = document.getElementById('email').value.trim();
             const acceptTerms = document.getElementById('acceptTerms').checked;
-            const successMessage = document.getElementById('successMessage');
-            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('formSuccessMessage');
+            const errorMessage = document.getElementById('formErrorMessage');
             const submitBtn = document.getElementById('submitBtn');
 
             // Hide previous messages
-            successMessage.classList.remove('show');
-            errorMessage.classList.remove('show');
+            successMessage.style.display = 'none';
+            errorMessage.style.display = 'none';
 
             // Validate
             if (!name || !email || !acceptTerms) {
                 errorMessage.textContent = 'Please fill in all required fields and accept the terms.';
-                errorMessage.classList.add('show');
+                errorMessage.style.display = 'block';
+                // Scroll to error message
+                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
 
@@ -509,23 +526,35 @@
                 if (response.ok) {
                     // Success!
                     successMessage.textContent = '✓ Thank you! Your acceptance has been recorded successfully.';
-                    successMessage.classList.add('show');
+                    successMessage.style.display = 'block';
                     submitBtn.textContent = '✓ Accepted';
                     submitBtn.style.background = '#10B981';
 
-                    // Reset form after 2 seconds
+                    // Scroll to success message
+                    successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    // Reset form after 3 seconds
                     setTimeout(() => {
                         document.getElementById('acceptanceForm').reset();
                         submitBtn.disabled = false;
                         submitBtn.textContent = 'Accept Terms and Conditions';
                         submitBtn.style.background = '#1ab681';
-                    }, 2000);
+                    }, 3000);
                 } else {
                     // Handle error
                     let errorMsg = 'An error occurred. Please try again.';
 
                     if (result.user_email) {
-                        errorMsg = result.user_email[0];
+                        // Check for specific error messages
+                        const emailError = Array.isArray(result.user_email) ? result.user_email[0] : result.user_email;
+
+                        if (emailError.includes('does not exist') || emailError.includes('not exist')) {
+                            errorMsg = 'This email is not registered. Please use your registered TrainrUp email address.';
+                        } else if (emailError.includes('already accepted')) {
+                            errorMsg = 'You have already accepted the terms with this email.';
+                        } else {
+                            errorMsg = emailError;
+                        }
                     } else if (result.error) {
                         errorMsg = result.error;
                     } else if (result.non_field_errors) {
@@ -533,16 +562,22 @@
                     }
 
                     errorMessage.textContent = errorMsg;
-                    errorMessage.classList.add('show');
+                    errorMessage.style.display = 'block';
                     submitBtn.disabled = false;
                     submitBtn.textContent = 'Accept Terms and Conditions';
+
+                    // Scroll to error message
+                    errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             } catch (error) {
                 console.error('Error submitting terms acceptance:', error);
                 errorMessage.textContent = 'Network error. Please check your connection and try again.';
-                errorMessage.classList.add('show');
+                errorMessage.style.display = 'block';
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Accept Terms and Conditions';
+
+                // Scroll to error message
+                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         });
     </script>

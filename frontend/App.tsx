@@ -22,7 +22,10 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 // Terms Redirect Component
 const TermsRedirect: React.FC = () => {
   React.useEffect(() => {
-    window.location.href = `${import.meta.env.VITE_API_URL}/auth/terms/`;
+    // Get the base URL from environment variables
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+    // Direct redirect to backend terms page
+    window.location.href = `${apiBaseUrl}/auth/terms/`;
   }, []);
 
   return (
