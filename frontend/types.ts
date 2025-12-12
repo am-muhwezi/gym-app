@@ -18,6 +18,12 @@ export interface Client {
   created_at: string;
   updated_at: string;
 
+  // Soft Delete
+  is_removed?: boolean;
+  removed_at?: string;
+  removed_by?: string;
+  removal_reason?: string;
+
   // Computed
   full_name?: string;
 }

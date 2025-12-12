@@ -69,10 +69,28 @@ export const clientService = {
   },
 
   /**
-   * Delete a client
+   * Delete a client (soft-delete - mark as removed)
    */
-  async deleteClient(clientId: string): Promise<void> {
-    return apiClient.delete<void>(`/clients/${clientId}/`);
+  async deleteClient(clientId: string, reason?: string): Promise<{ status: string; message: string }> {
+    return apiClient.delete<{ status: string; message: string }>(`/clients/${clientId}/`, {
+      body: reason ? JSON.stringify({ reason }) : undefined,
+    });
+  },
+
+  /**
+   * Get removed clients (Admin only)
+   */
+  async getRemovedClients(page: number = 1): Promise<PaginatedResponse<Client>> {
+    return apiClient.get<PaginatedResponse<Client>>('/clients/removed/', {
+      params: { page },
+    });
+  },
+
+  /**
+   * Restore a soft-deleted client (Admin only)
+   */
+  async restoreClient(clientId: string): Promise<{ status: string; client: Client }> {
+    return apiClient.post<{ status: string; client: Client }>(`/clients/${clientId}/restore/`);
   },
 
   /**

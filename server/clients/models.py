@@ -44,11 +44,25 @@ class Client(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Soft Delete
+    is_removed = models.BooleanField(default=False, help_text='Soft-delete flag - client removed from trainer account')
+    removed_at = models.DateTimeField(null=True, blank=True, help_text='When the client was removed')
+    removed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='removed_clients',
+        help_text='User who removed the client'
+    )
+    removal_reason = models.TextField(blank=True, help_text='Optional reason for removal')
+
     class Meta:
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['trainer', 'status']),
             models.Index(fields=['email']),
+            models.Index(fields=['trainer', 'is_removed']),
         ]
         # Ensure a trainer can't add the same client twice
         # But different trainers can have clients with same email/phone

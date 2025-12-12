@@ -41,6 +41,48 @@ const ClientCard: React.FC<{ client: Client }> = ({ client }) => {
     );
 }
 
+const ClientListItem: React.FC<{ client: Client }> = ({ client }) => {
+    const fullName = client.full_name || `${client.first_name} ${client.last_name}`;
+    const initials = client.first_name.charAt(0) + (client.last_name?.charAt(0) || '');
+
+    return (
+        <Link to={`/clients/${client.id}`}>
+            <Card className="hover:border-brand-primary border-2 border-transparent transition-all duration-200">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4 flex-1">
+                        <div className="w-12 h-12 bg-brand-primary/20 rounded-full flex items-center justify-center text-brand-primary text-lg font-bold">
+                            {initials}
+                        </div>
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <p className="text-sm text-gray-400">Name</p>
+                                <p className="text-white font-semibold">{fullName}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-400">Email</p>
+                                <p className="text-white">{client.email}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-400">Phone</p>
+                                <p className="text-white">{client.phone}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-400">Status</p>
+                                <p className="text-white capitalize">{client.status}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="text-gray-400">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                    </div>
+                </div>
+            </Card>
+        </Link>
+    );
+}
+
 const ClientsListPage: React.FC = () => {
     const { showSuccess, showError } = useToast();
 
@@ -63,6 +105,9 @@ const ClientsListPage: React.FC = () => {
         pageSize: 20,
         initialLoad: true,
     });
+
+    // View mode state
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
     const [showAddModal, setShowAddModal] = useState(false);
     const [firstName, setFirstName] = useState('');
@@ -155,11 +200,50 @@ const ClientsListPage: React.FC = () => {
                 </Card>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                        {safeClients.map(client => (
-                            <ClientCard key={client.id} client={client} />
-                        ))}
+                    {/* View Mode Toggle */}
+                    <div className="flex gap-1 bg-dark-700 rounded-lg p-1 mb-6 w-fit">
+                        <button
+                            onClick={() => setViewMode('grid')}
+                            className={`p-2 rounded-md transition-colors ${
+                                viewMode === 'grid'
+                                    ? 'bg-brand-primary text-white'
+                                    : 'text-gray-400 hover:text-white'
+                            }`}
+                            title="Grid view"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                            </svg>
+                        </button>
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`p-2 rounded-md transition-colors ${
+                                viewMode === 'list'
+                                    ? 'bg-brand-primary text-white'
+                                    : 'text-gray-400 hover:text-white'
+                            }`}
+                            title="List view"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
                     </div>
+
+                    {/* Client Display - Grid or List View */}
+                    {viewMode === 'grid' ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                            {safeClients.map(client => (
+                                <ClientCard key={client.id} client={client} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {safeClients.map(client => (
+                                <ClientListItem key={client.id} client={client} />
+                            ))}
+                        </div>
+                    )}
 
                     {/* Load More Pagination */}
                     <LoadMore
