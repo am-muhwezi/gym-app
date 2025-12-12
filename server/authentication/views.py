@@ -35,6 +35,15 @@ class SignupView(generics.GenericAPIView):
         if serializer.is_valid():
             user = serializer.save()
 
+            # Initialize 14-day trial for trainers
+            if user.user_type == 'trainer':
+                user.trial_start_date = timezone.now().date()
+                user.trial_end_date = timezone.now().date() + timedelta(days=14)
+                user.subscription_status = 'trial'
+                user.plan_type = 'trial'
+                user.client_limit = 5  # Trial users can have up to 5 clients
+                user.save()
+
             # Create token for the user
             token, created = Token.objects.get_or_create(user=user)
 
@@ -419,3 +428,68 @@ class TermsAcceptanceStatusView(APIView):
             return Response({
                 'error': 'User not found'
             }, status=status.HTTP_404_NOT_FOUND)
+
+
+# Subscription Management Views
+
+class SubscriptionStatusView(APIView):
+    """Get current user's subscription status"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        from clients.models import Client
+
+        return Response({
+            'subscription_status': user.subscription_status,
+            'plan_type': user.plan_type,
+            'trial_start_date': user.trial_start_date,
+            'trial_end_date': user.trial_end_date,
+            'is_trial_active': user.is_trial_active,
+            'is_subscription_active': user.is_subscription_active,
+            'days_until_trial_end': user.days_until_trial_end,
+            'client_limit': user.get_client_limit(),
+            'current_client_count': Client.objects.filter(
+                trainer=user,
+                is_removed=False
+            ).count() if user.user_type == 'trainer' else 0
+        }, status=status.HTTP_200_OK)
+
+
+class SubscriptionUpgradeView(APIView):
+    """Upgrade from trial to paid subscription"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        plan_type = request.data.get('plan_type')
+        payment_method = request.data.get('payment_method')
+
+        # Validate plan
+        valid_plans = ['starter', 'professional', 'enterprise']
+        if plan_type not in valid_plans:
+            return Response({
+                'error': 'Invalid plan type',
+                'valid_plans': valid_plans
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # In full implementation: Process payment here via M-Pesa or other gateway
+        # For now, just update status
+
+        user.subscription_status = 'active'
+        user.plan_type = plan_type
+        user.client_limit = {
+            'starter': 10,
+            'professional': 50,
+            'enterprise': -1  # unlimited
+        }[plan_type]
+        user.save()
+
+        logger.info(f"User {user.email} upgraded to {plan_type} plan")
+
+        return Response({
+            'status': 'upgraded',
+            'plan_type': plan_type,
+            'client_limit': user.client_limit,
+            'message': f'Successfully upgraded to {plan_type} plan'
+        }, status=status.HTTP_200_OK)

@@ -7,6 +7,8 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.utils import timezone
+from authentication.permissions import IsAdmin
 from .models import Client, ActivityLog, ProgressMeasurement
 from .serializers import (
     ClientSerializer, ClientListSerializer, ClientCreateUpdateSerializer,
@@ -35,7 +37,13 @@ class ClientViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Get clients for authenticated trainer only"""
-        return Client.objects.filter(trainer=self.request.user).select_related('trainer')
+        queryset = Client.objects.filter(trainer=self.request.user).select_related('trainer')
+
+        # Admins can see all clients, trainers only see non-removed
+        if not (self.request.user.user_type == 'admin' or self.request.user.is_superuser):
+            queryset = queryset.filter(is_removed=False)
+
+        return queryset
 
     def get_serializer_class(self):
         """Use different serializers based on action"""
@@ -86,6 +94,23 @@ class ClientViewSet(viewsets.ModelViewSet):
         """Create new client for authenticated trainer"""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        # Check client limit for subscription plans
+        client_limit = request.user.get_client_limit()
+        if client_limit != -1:  # -1 means unlimited
+            current_count = Client.objects.filter(
+                trainer=request.user,
+                is_removed=False  # Only count active (non-removed) clients
+            ).count()
+
+            if current_count >= client_limit:
+                return Response({
+                    'error': 'Client limit reached',
+                    'message': f'Your current plan allows up to {client_limit} clients. Upgrade to add more.',
+                    'current_count': current_count,
+                    'limit': client_limit,
+                    'plan_type': request.user.plan_type
+                }, status=status.HTTP_403_FORBIDDEN)
 
         # Use service to set default membership dates (business logic)
         client_data = ClientService.set_default_membership_dates(
@@ -178,7 +203,7 @@ class ClientViewSet(viewsets.ModelViewSet):
         return Response(ClientSerializer(client).data)
 
     def destroy(self, request, pk=None):
-        """Delete client"""
+        """Soft-delete client (mark as removed)"""
         try:
             client = self.get_queryset().get(pk=pk)
         except Client.DoesNotExist:
@@ -187,8 +212,17 @@ class ClientViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        client.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        # Perform soft delete
+        client.is_removed = True
+        client.removed_at = timezone.now()
+        client.removed_by = request.user
+        client.removal_reason = request.data.get('reason', '')
+        client.save()
+
+        return Response({
+            'status': 'client removed',
+            'message': 'Client has been removed from your account'
+        }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
     def deactivate(self, request, pk=None):
@@ -215,6 +249,61 @@ class ClientViewSet(viewsets.ModelViewSet):
             'status': 'client deactivated',
             'client': ClientSerializer(client).data
         })
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
+    def restore(self, request, pk=None):
+        """
+        Restore a soft-deleted client (Admin only)
+
+        POST /api/clients/{id}/restore/
+        """
+        try:
+            # Get all clients including removed ones (don't use get_queryset which filters)
+            client = Client.objects.get(pk=pk, trainer=request.user)
+        except Client.DoesNotExist:
+            return Response(
+                {'error': 'Client not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if not client.is_removed:
+            return Response(
+                {'error': 'Client is not removed'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Restore the client
+        client.is_removed = False
+        client.removed_at = None
+        client.removed_by = None
+        client.removal_reason = ''
+        client.save()
+
+        return Response({
+            'status': 'client restored',
+            'client': ClientSerializer(client).data
+        })
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAdmin])
+    def removed(self, request):
+        """
+        List all removed clients (Admin only)
+
+        GET /api/clients/removed/
+        """
+        removed_clients = Client.objects.filter(
+            trainer=request.user,
+            is_removed=True
+        ).order_by('-removed_at')
+
+        # Use pagination
+        page = self.paginate_queryset(removed_clients)
+        if page is not None:
+            serializer = ClientListSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = ClientListSerializer(removed_clients, many=True)
+        return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def statistics(self, request):

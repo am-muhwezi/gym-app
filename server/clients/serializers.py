@@ -159,8 +159,12 @@ class ClientSerializer(serializers.ModelSerializer):
             'goals',
             'active_goals_count',
             'payment_summary',
+            'is_removed',
+            'removed_at',
+            'removed_by',
+            'removal_reason',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'full_name']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'full_name', 'is_removed', 'removed_at', 'removed_by', 'removal_reason']
 
     def get_active_goals_count(self, obj):
         """Count of active (not achieved) goals"""
@@ -259,8 +263,12 @@ class ClientListSerializer(serializers.ModelSerializer):
             'status',
             'payment_status',
             'created_at',
+            'is_removed',
+            'removed_at',
+            'removed_by',
+            'removal_reason',
         ]
-        read_only_fields = ['id', 'created_at', 'full_name']
+        read_only_fields = ['id', 'created_at', 'full_name', 'is_removed', 'removed_at', 'removed_by', 'removal_reason']
 
     def get_payment_status(self, obj):
         """Quick payment status check"""

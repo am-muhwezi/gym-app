@@ -44,7 +44,7 @@ const LandingPage: React.FC = () => {
             to="/signup"
             className="px-8 py-4 bg-brand-primary text-white text-lg rounded-lg hover:bg-brand-secondary transition-colors shadow-lg"
           >
-            Start Free Trial
+            Start 14-Day Free Trial
           </Link>
           <a
             href="#features"
@@ -249,6 +249,188 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section className="container mx-auto px-6 py-20">
+        <h2 className="text-4xl font-bold text-white text-center mb-4">
+          Simple, Transparent Pricing
+        </h2>
+        <p className="text-xl text-gray-400 text-center mb-16 max-w-2xl mx-auto">
+          Choose the plan that fits your business. Start with a 14-day free trial, no credit card required.
+        </p>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Starter Plan */}
+          <div className="bg-dark-800 rounded-xl p-8 border border-dark-700 hover:border-brand-primary transition-all duration-200 hover:scale-105">
+            <h3 className="text-2xl font-bold text-white mb-2">Starter</h3>
+            <p className="text-gray-400 mb-6">Perfect for getting started</p>
+            <div className="mb-6">
+              <div className="text-4xl font-bold text-brand-primary mb-2">KES 2,000</div>
+              <div className="text-gray-400">per month</div>
+            </div>
+            <div className="space-y-3 mb-8">
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-gray-300">Up to 5 clients</span>
+              </div>
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-gray-300">Client management</span>
+              </div>
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-gray-300">Session booking</span>
+              </div>
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-gray-300">M-Pesa payments</span>
+              </div>
+            </div>
+            <Link
+              to="/signup"
+              className="block w-full text-center px-6 py-3 bg-dark-700 text-white rounded-lg hover:bg-dark-600 transition-colors"
+            >
+              Start Free Trial
+            </Link>
+          </div>
+
+          {/* Growth Plan */}
+          <div className="bg-dark-800 rounded-xl p-8 border-2 border-brand-primary relative hover:scale-105 transition-all duration-200">
+            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+              <span className="bg-brand-primary text-white px-4 py-1 rounded-full text-sm font-semibold">Popular</span>
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">Growth</h3>
+            <p className="text-gray-400 mb-6">For growing businesses</p>
+            <div className="mb-6">
+              <div className="text-4xl font-bold text-brand-primary mb-2">KES 5,000</div>
+              <div className="text-gray-400">per month</div>
+            </div>
+            <div className="space-y-3 mb-8">
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-gray-300">Up to 15 clients</span>
+              </div>
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-gray-300">Everything in Starter</span>
+              </div>
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-gray-300">Progress tracking</span>
+              </div>
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-gray-300">Workout plans</span>
+              </div>
+            </div>
+            <Link
+              to="/signup"
+              className="block w-full text-center px-6 py-3 bg-brand-primary text-white rounded-lg hover:bg-brand-secondary transition-colors"
+            >
+              Start Free Trial
+            </Link>
+          </div>
+
+          {/* Professional Plan */}
+          <div className="bg-dark-800 rounded-xl p-8 border border-dark-700 hover:border-brand-primary transition-all duration-200 hover:scale-105">
+            <h3 className="text-2xl font-bold text-white mb-2">Professional</h3>
+            <p className="text-gray-400 mb-6">For established trainers</p>
+            <div className="mb-6">
+              <div className="text-4xl font-bold text-brand-primary mb-2">KES 8,000</div>
+              <div className="text-gray-400">per month</div>
+            </div>
+            <div className="space-y-3 mb-8">
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-gray-300">Up to 30 clients</span>
+              </div>
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-gray-300">Everything in Growth</span>
+              </div>
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-gray-300">Advanced analytics</span>
+              </div>
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-gray-300">Priority support</span>
+              </div>
+            </div>
+            <Link
+              to="/signup"
+              className="block w-full text-center px-6 py-3 bg-dark-700 text-white rounded-lg hover:bg-dark-600 transition-colors"
+            >
+              Start Free Trial
+            </Link>
+          </div>
+
+          {/* Enterprise Plan */}
+          <div className="bg-dark-800 rounded-xl p-8 border border-dark-700 hover:border-brand-primary transition-all duration-200 hover:scale-105">
+            <h3 className="text-2xl font-bold text-white mb-2">Enterprise</h3>
+            <p className="text-gray-400 mb-6">For large operations</p>
+            <div className="mb-6">
+              <div className="text-4xl font-bold text-brand-primary mb-2">Custom</div>
+              <div className="text-gray-400">pricing</div>
+            </div>
+            <div className="space-y-3 mb-8">
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-gray-300">More than 30 clients</span>
+              </div>
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-gray-300">Everything in Professional</span>
+              </div>
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-gray-300">Dedicated support</span>
+              </div>
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-gray-300">Custom features</span>
+              </div>
+            </div>
+            <Link
+              to="/signup"
+              className="block w-full text-center px-6 py-3 bg-dark-700 text-white rounded-lg hover:bg-dark-600 transition-colors"
+            >
+              Contact Sales
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Stats Section */}
       <section className="container mx-auto px-6 py-20">
         <div className="bg-dark-800 rounded-2xl p-12 border border-dark-700">
@@ -281,8 +463,55 @@ const LandingPage: React.FC = () => {
           to="/signup"
           className="inline-block px-8 py-4 bg-brand-primary text-white text-lg rounded-lg hover:bg-brand-secondary transition-colors shadow-lg"
         >
-          Get Started For Free
+          Start Your Free Trial Today
         </Link>
+      </section>
+
+      {/* Trial Benefits Section */}
+      <section className="container mx-auto px-6 py-20">
+        <div className="bg-gradient-to-br from-brand-primary/10 to-brand-secondary/10 rounded-2xl p-12 border border-brand-primary/20">
+          <h2 className="text-3xl font-bold text-white text-center mb-12">
+            Start Your 14-Day Free Trial
+          </h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-brand-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">No Credit Card Required</h3>
+              <p className="text-gray-400 text-sm">Start your trial instantly, no payment info needed</p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-brand-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">Up to 5 Clients</h3>
+              <p className="text-gray-400 text-sm">Perfect for testing with your first clients</p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-brand-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">All Features Unlocked</h3>
+              <p className="text-gray-400 text-sm">Full access to every feature during your trial</p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-brand-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">Cancel Anytime</h3>
+              <p className="text-gray-400 text-sm">No commitment, cancel with one click</p>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Footer */}

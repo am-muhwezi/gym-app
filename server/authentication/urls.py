@@ -26,4 +26,8 @@ urlpatterns = [
     path('terms/', views.TermsPageView.as_view(), name='terms-page'),
     path('terms/accept/', views.TermsAcceptanceView.as_view(), name='terms-accept'),
     path('terms/status/', views.TermsAcceptanceStatusView.as_view(), name='terms-status'),
+
+    # Subscription Management
+    path('subscription/status/', views.SubscriptionStatusView.as_view(), name='subscription-status'),
+    path('subscription/upgrade/', views.SubscriptionUpgradeView.as_view(), name='subscription-upgrade'),
 ]

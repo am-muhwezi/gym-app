@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useClients } from '../context/ClientContext';
 import { useToast } from '../context/ToastContext';
 import Card from '../components/ui/Card';
@@ -17,6 +17,8 @@ const BackArrowIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" 
 const ClientDetailPage: React.FC = () => {
     const { clientId } = useParams<{ clientId: string }>();
     const { getClientById } = useClients();
+    const navigate = useNavigate();
+    const { showSuccess, showError } = useToast();
     const [activeTab, setActiveTab] = useState('overview');
     const [client, setClient] = useState<Client | null>(null);
     const [goals, setGoals] = useState<Goal[]>([]);
@@ -27,6 +29,9 @@ const ClientDetailPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [showExportMenu, setShowExportMenu] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteReason, setDeleteReason] = useState('');
+    const [deleting, setDeleting] = useState(false);
 
     // Load client data
     useEffect(() => {
@@ -91,6 +96,23 @@ const ClientDetailPage: React.FC = () => {
         if (!clientId) return;
         const data = await progressService.getClientProgress(clientId);
         setProgress(data);
+    };
+
+    const handleDeleteClient = async () => {
+        if (!clientId) return;
+
+        try {
+            setDeleting(true);
+            await clientService.deleteClient(clientId, deleteReason);
+            showSuccess(`Client ${client?.full_name || 'removed'} has been removed from your account`);
+            navigate('/clients');
+        } catch (error: any) {
+            console.error('Error deleting client:', error);
+            showError(error.message || 'Failed to remove client. Please try again.');
+        } finally {
+            setDeleting(false);
+            setShowDeleteModal(false);
+        }
     };
 
     if (loading) {
@@ -223,6 +245,15 @@ const ClientDetailPage: React.FC = () => {
                                 </div>
                             )}
                         </div>
+
+                        {/* Delete Button */}
+                        <Button
+                            variant="secondary"
+                            onClick={() => setShowDeleteModal(true)}
+                            className="w-full sm:w-auto bg-red-600 hover:bg-red-700 border-red-600"
+                        >
+                            Delete Member
+                        </Button>
                     </div>
                 </div>
             </Card>
@@ -290,6 +321,53 @@ const ClientDetailPage: React.FC = () => {
                         setShowEditModal(false);
                     }}
                 />
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-md">
+                        <h2 className="text-2xl font-bold mb-4 text-white">Remove Client</h2>
+
+                        <p className="text-gray-300 mb-4">
+                            Are you sure you want to remove <span className="font-semibold text-white">{client?.full_name || 'this client'}</span>?
+                            This action will remove them from your account but their data will be preserved.
+                        </p>
+
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                                Reason (optional)
+                            </label>
+                            <textarea
+                                value={deleteReason}
+                                onChange={(e) => setDeleteReason(e.target.value)}
+                                placeholder="Why are you removing this client?"
+                                className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700 focus:outline-none focus:ring-2 focus:ring-brand-primary placeholder-gray-500 min-h-[100px]"
+                            />
+                        </div>
+
+                        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                            <Button
+                                variant="secondary"
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setDeleteReason('');
+                                }}
+                                disabled={deleting}
+                                className="w-full sm:w-auto"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleDeleteClient}
+                                disabled={deleting}
+                                className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
+                            >
+                                {deleting ? 'Removing...' : 'Remove Client'}
+                            </Button>
+                        </div>
+                    </Card>
+                </div>
             )}
         </div>
     );

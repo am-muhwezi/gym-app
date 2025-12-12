@@ -50,16 +50,91 @@ class User(AbstractUser):
         ('client', 'Client'),
         ('admin', 'Admin'),
     )
+
+    SUBSCRIPTION_STATUS_CHOICES = (
+        ('trial', 'Trial'),
+        ('active', 'Active'),
+        ('expired', 'Expired'),
+        ('cancelled', 'Cancelled'),
+        ('suspended', 'Suspended'),
+    )
+
+    PLAN_TYPE_CHOICES = (
+        ('trial', 'Trial'),
+        ('starter', 'Starter'),
+        ('professional', 'Professional'),
+        ('enterprise', 'Enterprise'),
+    )
+
     username=models.CharField(max_length=30, unique=True)
     email=models.EmailField(max_length=80, unique=True)
     phone_number=PhoneNumberField(null=False, unique=True)
     user_type=models.CharField(max_length=10, choices=USER_TYPES, default='trainer')
+
+    # Trial/Subscription fields
+    trial_start_date = models.DateField(null=True, blank=True, help_text='When trial started')
+    trial_end_date = models.DateField(null=True, blank=True, help_text='When trial expires')
+    subscription_status = models.CharField(
+        max_length=20,
+        choices=SUBSCRIPTION_STATUS_CHOICES,
+        null=True,
+        blank=True,
+        help_text='Current subscription status'
+    )
+    plan_type = models.CharField(
+        max_length=20,
+        choices=PLAN_TYPE_CHOICES,
+        null=True,
+        blank=True,
+        help_text='Current plan type'
+    )
+    client_limit = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text='Max clients allowed (-1 for unlimited)'
+    )
 
     USERNAME_FIELD='username'
     REQUIRED_FIELDS=['email', 'phone_number']
 
     objects = CustomUserManager()
 
+    @property
+    def is_trial_active(self):
+        """Check if user is in active trial period"""
+        if self.subscription_status != 'trial':
+            return False
+        if not self.trial_end_date:
+            return False
+        return timezone.now().date() <= self.trial_end_date
+
+    @property
+    def is_subscription_active(self):
+        """Check if user has active access (trial or paid)"""
+        return self.subscription_status in ['trial', 'active'] and (
+            self.is_trial_active or self.subscription_status == 'active'
+        )
+
+    @property
+    def days_until_trial_end(self):
+        """Days remaining in trial"""
+        if not self.trial_end_date:
+            return None
+        delta = self.trial_end_date - timezone.now().date()
+        return max(0, delta.days)
+
+    def get_client_limit(self):
+        """Get maximum allowed clients for this user"""
+        if self.client_limit:
+            return self.client_limit
+        # Default limits by plan
+        defaults = {
+            'trial': 5,
+            'starter': 10,
+            'professional': 50,
+            'enterprise': -1  # unlimited
+        }
+        return defaults.get(self.plan_type, 5)
 
     def __str__(self):
         return f"<User {self.email}>"
