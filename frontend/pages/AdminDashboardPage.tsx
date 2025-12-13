@@ -51,10 +51,45 @@ const AdminDashboardPage: React.FC = () => {
                 <p className="text-gray-400 mt-1">Monitor your SaaS platform health and trainer ecosystem</p>
             </div>
 
+            {/* Expired Trials Warning */}
+            {analytics.trainers.expired_trials > 0 && (
+                <Card className="bg-orange-500/10 border border-orange-500/20">
+                    <div className="flex items-start space-x-3">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            className="text-orange-400 mt-1 flex-shrink-0"
+                        >
+                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                            <path d="M12 9v4" />
+                            <path d="M12 17h.01" />
+                        </svg>
+                        <div>
+                            <p className="text-orange-300 font-semibold">Expired Trial Accounts</p>
+                            <p className="text-orange-200 text-sm mt-1">
+                                {analytics.trainers.expired_trials} trainer{analytics.trainers.expired_trials > 1 ? 's have' : ' has'} expired trials and will be automatically blocked upon their next login or activity. Go to the{' '}
+                                <span
+                                    onClick={() => navigate('/admin/trainers')}
+                                    className="underline cursor-pointer hover:text-orange-100"
+                                >
+                                    Trainers page
+                                </span>{' '}
+                                to extend their trials or upgrade their subscriptions.
+                            </p>
+                        </div>
+                    </div>
+                </Card>
+            )}
+
             {/* Trainer Metrics */}
             <div>
                 <h2 className="text-xl font-semibold text-white mb-4">Trainer Accounts</h2>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                     <Card
                         className="bg-gradient-to-br from-brand-primary/20 to-brand-primary/5 cursor-pointer hover:scale-105 transition-transform"
                         onClick={() => navigate('/admin/trainers')}
@@ -80,7 +115,17 @@ const AdminDashboardPage: React.FC = () => {
                         <p className="text-3xl font-bold text-white mt-2">{analytics.trainers.active_last_7_days}</p>
                         <p className="text-gray-500 text-xs mt-1">Recently logged in</p>
                     </Card>
+                    <Card className="bg-gradient-to-br from-orange-500/20 to-orange-500/5">
+                        <h3 className="text-gray-400 text-sm">Expired Trials</h3>
+                        <p className="text-3xl font-bold text-white mt-2">{analytics.trainers.expired_trials}</p>
+                        <p className="text-gray-500 text-xs mt-1">Pending auto-block</p>
+                    </Card>
                     <Card className="bg-gradient-to-br from-red-500/20 to-red-500/5">
+                        <h3 className="text-gray-400 text-sm">Blocked</h3>
+                        <p className="text-3xl font-bold text-white mt-2">{analytics.trainers.blocked}</p>
+                        <p className="text-gray-500 text-xs mt-1">Access restricted</p>
+                    </Card>
+                    <Card className="bg-gradient-to-br from-gray-500/20 to-gray-500/5">
                         <h3 className="text-gray-400 text-sm">Suspended</h3>
                         <p className="text-3xl font-bold text-white mt-2">{analytics.trainers.suspended}</p>
                         <p className="text-gray-500 text-xs mt-1">Inactive accounts</p>

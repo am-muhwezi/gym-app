@@ -80,6 +80,14 @@ class ApiClient {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
 
+      // Check for blocked account (403 with account_blocked flag)
+      if (response.status === 403 && errorData.account_blocked) {
+        // Clear token and redirect to blocked page
+        this.clearToken();
+        window.location.hash = '/blocked';
+        throw new Error(errorData.message || 'Account blocked');
+      }
+
       // Extract user-friendly error message
       let errorMessage = '';
 

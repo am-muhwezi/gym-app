@@ -279,6 +279,16 @@ export interface Trainer {
   is_staff: boolean;
   date_joined: string;
   last_login?: string;
+  subscription_status?: 'trial' | 'active' | 'expired' | 'cancelled' | 'suspended';
+  plan_type?: 'trial' | 'starter' | 'professional' | 'enterprise';
+  trial_start_date?: string;
+  trial_end_date?: string;
+  is_trial_active?: boolean;
+  days_until_trial_end?: number;
+  client_limit?: number;
+  account_blocked?: boolean;
+  block_reason?: string;
+  blocked_at?: string;
 }
 
 export interface TrainerCreatePayload {
@@ -299,12 +309,73 @@ export interface TrainerResetPasswordPayload {
   new_password: string;
 }
 
+export interface TrainerSubscriptionUpdatePayload {
+  subscription_status?: 'trial' | 'active' | 'expired' | 'cancelled' | 'suspended';
+  plan_type?: 'trial' | 'starter' | 'professional' | 'enterprise';
+  client_limit?: number;
+  extend_trial_days?: number;
+}
+
+export interface TrainerDetailResponse {
+  trainer: Trainer;
+  statistics: {
+    clients: {
+      total: number;
+      removed: number;
+    };
+    bookings: {
+      total: number;
+      completed: number;
+      upcoming: number;
+    };
+    payments: {
+      total: number;
+      completed: number;
+      total_revenue: number;
+    };
+  };
+  subscription: {
+    status: string;
+    plan_type: string;
+    trial_start_date: string | null;
+    trial_end_date: string | null;
+    is_trial_active: boolean;
+    days_until_trial_end: number | null;
+    client_limit: number;
+  };
+  blocking: {
+    account_blocked: boolean;
+    block_reason: string | null;
+    blocked_at: string | null;
+  };
+  recent_activity: {
+    clients: Array<{
+      id: string;
+      first_name: string;
+      last_name: string;
+      email: string;
+      created_at: string;
+      status: string;
+    }>;
+    bookings: Array<{
+      id: string;
+      title: string;
+      session_date: string;
+      start_time: string;
+      status: string;
+      client: string;
+    }>;
+  };
+}
+
 // ============ ADMIN ANALYTICS TYPES (Platform-level) ============
 export interface AdminAnalytics {
   trainers: {
     total: number;
     active: number;
     suspended: number;
+    blocked: number;
+    expired_trials: number;
     new_this_month: number;
     active_last_7_days: number;
   };

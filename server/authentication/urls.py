@@ -18,6 +18,9 @@ urlpatterns = [
     path('admin/trainers/<int:pk>/delete/', views.TrainerDeleteView.as_view(), name='admin-trainer-delete'),
     path('admin/trainers/<int:pk>/toggle-active/', views.TrainerToggleActiveView.as_view(), name='admin-trainer-toggle-active'),
     path('admin/trainers/<int:pk>/reset-password/', views.TrainerResetPasswordView.as_view(), name='admin-trainer-reset-password'),
+    path('admin/trainers/<int:pk>/block/', views.TrainerBlockView.as_view(), name='admin-trainer-block'),
+    path('admin/trainers/<int:pk>/unblock/', views.TrainerUnblockView.as_view(), name='admin-trainer-unblock'),
+    path('admin/trainers/<int:pk>/subscription/', views.AdminTrainerSubscriptionUpdateView.as_view(), name='admin-trainer-subscription-update'),
 
     # Admin Platform Analytics
     path('admin/analytics/', views.AdminAnalyticsView.as_view(), name='admin-analytics'),

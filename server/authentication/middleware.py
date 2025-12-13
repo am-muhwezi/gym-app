@@ -6,6 +6,9 @@ Checks trial status and enforces subscription limits
 from django.utils.deprecation import MiddlewareMixin
 from django.http import JsonResponse
 from django.utils import timezone
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TrialEnforcementMiddleware(MiddlewareMixin):
@@ -46,6 +49,26 @@ class TrialEnforcementMiddleware(MiddlewareMixin):
         # Skip for non-trainer users
         if request.user.user_type != 'trainer':
             return None
+
+        # Auto-block if trial has expired and admin hasn't intervened
+        if hasattr(request.user, 'should_be_auto_blocked') and request.user.should_be_auto_blocked:
+            if not request.user.account_blocked:
+                # Auto-block the account
+                request.user.account_blocked = True
+                request.user.block_reason = 'Your 14-day trial period has expired. Please contact support to upgrade your subscription.'
+                request.user.blocked_at = timezone.now()
+                request.user.save(update_fields=['account_blocked', 'block_reason', 'blocked_at'])
+
+                logger.info(f"Auto-blocked trainer {request.user.username} due to expired trial")
+
+        # Check if account is blocked (manual or auto)
+        if hasattr(request.user, 'account_blocked') and request.user.account_blocked:
+            return JsonResponse({
+                'error': 'Account blocked',
+                'message': request.user.block_reason or 'Your account has been blocked. Please contact support for assistance.',
+                'account_blocked': True,
+                'blocked_at': str(request.user.blocked_at) if request.user.blocked_at else None,
+            }, status=403)  # 403 Forbidden
 
         # Check if user has subscription fields (for backward compatibility)
         if not hasattr(request.user, 'subscription_status') or request.user.subscription_status is None:

@@ -523,11 +523,12 @@ class ClientViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED
         )
 
-    @action(detail=True, methods=['delete'], url_path='workouts/(?P<plan_id>[^/.]+)')
+    @action(detail=True, methods=['patch', 'delete'], url_path='workouts/(?P<plan_id>[^/.]+)')
     def delete_workout(self, request, pk=None, plan_id=None):
         """
-        Delete a workout plan
+        Update or delete a workout plan
 
+        PATCH /api/clients/{id}/workouts/{plan_id}/
         DELETE /api/clients/{id}/workouts/{plan_id}/
         """
         try:
@@ -539,22 +540,34 @@ class ClientViewSet(viewsets.ModelViewSet):
             )
 
         from .models import WorkoutPlan
+        from .serializers import WorkoutPlanSerializer, WorkoutPlanCreateSerializer
 
         try:
             plan = client.workout_plans.get(id=plan_id)
-            plan.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
         except WorkoutPlan.DoesNotExist:
             return Response(
                 {'error': 'Workout plan not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
 
-    @action(detail=True, methods=['delete'], url_path='workouts/(?P<plan_id>[^/.]+)/exercises/(?P<exercise_id>[^/.]+)')
+        if request.method == 'PATCH':
+            serializer = WorkoutPlanCreateSerializer(plan, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(
+                WorkoutPlanSerializer(plan).data,
+                status=status.HTTP_200_OK
+            )
+        elif request.method == 'DELETE':
+            plan.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=['patch', 'delete'], url_path='workouts/(?P<plan_id>[^/.]+)/exercises/(?P<exercise_id>[^/.]+)')
     def delete_exercise(self, request, pk=None, plan_id=None, exercise_id=None):
         """
-        Delete an exercise from a workout plan
+        Update or delete an exercise from a workout plan
 
+        PATCH /api/clients/{id}/workouts/{plan_id}/exercises/{exercise_id}/
         DELETE /api/clients/{id}/workouts/{plan_id}/exercises/{exercise_id}/
         """
         try:
@@ -566,12 +579,11 @@ class ClientViewSet(viewsets.ModelViewSet):
             )
 
         from .models import WorkoutPlan, Exercise
+        from .serializers import ExerciseSerializer, ExerciseCreateSerializer
 
         try:
             plan = client.workout_plans.get(id=plan_id)
             exercise = plan.exercises.get(id=exercise_id)
-            exercise.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
         except WorkoutPlan.DoesNotExist:
             return Response(
                 {'error': 'Workout plan not found'},
@@ -582,6 +594,18 @@ class ClientViewSet(viewsets.ModelViewSet):
                 {'error': 'Exercise not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+        if request.method == 'PATCH':
+            serializer = ExerciseCreateSerializer(exercise, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(
+                ExerciseSerializer(exercise).data,
+                status=status.HTTP_200_OK
+            )
+        elif request.method == 'DELETE':
+            exercise.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['get', 'post'], url_path='logs')
     def logs(self, request):
