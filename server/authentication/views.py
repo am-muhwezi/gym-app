@@ -68,6 +68,28 @@ class LoginView(generics.GenericAPIView):
         if serializer.is_valid():
             user = serializer.validated_data['user']
 
+            # Auto-block if trial has expired for trainers
+            if user.user_type == 'trainer' and hasattr(user, 'should_be_auto_blocked'):
+                if user.should_be_auto_blocked and not user.account_blocked:
+                    user.account_blocked = True
+                    user.block_reason = 'Your 14-day trial period has expired. Please contact support to upgrade your subscription.'
+                    user.blocked_at = timezone.now()
+                    user.save(update_fields=['account_blocked', 'block_reason', 'blocked_at'])
+                    logger.info(f"Auto-blocked trainer {user.username} during login due to expired trial")
+
+            # Check if account is blocked (for trainers only)
+            if user.user_type == 'trainer' and hasattr(user, 'account_blocked') and user.account_blocked:
+                return Response({
+                    'error': 'Account blocked',
+                    'message': user.block_reason or 'Your account has been blocked. Please contact support for assistance.',
+                    'account_blocked': True,
+                    'blocked_at': str(user.blocked_at) if user.blocked_at else None,
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            # Update last_login timestamp
+            user.last_login = timezone.now()
+            user.save(update_fields=['last_login'])
+
             # Get or create token
             token, created = Token.objects.get_or_create(user=user)
 
@@ -233,11 +255,96 @@ class TrainerListView(generics.ListAPIView):
         return User.objects.filter(user_type='trainer').order_by('-date_joined')
 
 
-class TrainerDetailView(generics.RetrieveAPIView):
-    """Get specific trainer account details (admin only) - SaaS perspective"""
-    serializer_class = serializers.TrainerSerializer
+class TrainerDetailView(APIView):
+    """Get specific trainer account details with operations (admin only) - SaaS perspective"""
     permission_classes = [IsAdmin]
-    queryset = User.objects.filter(user_type='trainer')
+
+    def get(self, request, pk):
+        try:
+            trainer = User.objects.get(pk=pk, user_type='trainer')
+        except User.DoesNotExist:
+            return Response({
+                'error': 'Trainer not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        from clients.models import Client
+        from payments.models import Payment
+        from bookings.models import Booking
+
+        # Get trainer's basic info
+        trainer_serializer = serializers.TrainerSerializer(trainer)
+
+        # Get trainer's statistics
+        total_clients = Client.objects.filter(trainer=trainer, is_removed=False).count()
+        removed_clients = Client.objects.filter(trainer=trainer, is_removed=True).count()
+
+        total_bookings = Booking.objects.filter(trainer=trainer).count()
+        completed_bookings = Booking.objects.filter(trainer=trainer, status='completed').count()
+        upcoming_bookings = Booking.objects.filter(
+            trainer=trainer,
+            status__in=['scheduled', 'confirmed'],
+            session_date__gte=timezone.now().date()
+        ).count()
+
+        # Get payments through clients (Payment -> Client -> Trainer)
+        total_payments = Payment.objects.filter(client__trainer=trainer).count()
+        completed_payments = Payment.objects.filter(client__trainer=trainer, payment_status='completed').count()
+        total_revenue = Payment.objects.filter(
+            client__trainer=trainer,
+            payment_status='completed'
+        ).aggregate(Sum('amount'))['amount__sum'] or 0
+
+        # Recent activity
+        recent_clients = Client.objects.filter(
+            trainer=trainer,
+            is_removed=False
+        ).order_by('-created_at')[:5].values(
+            'id', 'first_name', 'last_name', 'email', 'created_at', 'status'
+        )
+
+        recent_bookings = Booking.objects.filter(
+            trainer=trainer
+        ).order_by('-session_date', '-start_time')[:5].values(
+            'id', 'title', 'session_date', 'start_time', 'status', 'client'
+        )
+
+        return Response({
+            'trainer': trainer_serializer.data,
+            'statistics': {
+                'clients': {
+                    'total': total_clients,
+                    'removed': removed_clients,
+                },
+                'bookings': {
+                    'total': total_bookings,
+                    'completed': completed_bookings,
+                    'upcoming': upcoming_bookings,
+                },
+                'payments': {
+                    'total': total_payments,
+                    'completed': completed_payments,
+                    'total_revenue': float(total_revenue),
+                },
+            },
+            'subscription': {
+                'status': trainer.subscription_status,
+                'plan_type': trainer.plan_type,
+                'trial_start_date': trainer.trial_start_date,
+                'trial_end_date': trainer.trial_end_date,
+                'is_trial_active': trainer.is_trial_active,
+                'days_until_trial_end': trainer.days_until_trial_end,
+                'client_limit': trainer.get_client_limit(),
+            },
+            'blocking': {
+                'account_blocked': trainer.account_blocked,
+                'block_reason': trainer.block_reason,
+                'blocked_at': trainer.blocked_at,
+            },
+            'recent_activity': {
+                'clients': list(recent_clients),
+                'bookings': list(recent_bookings),
+            },
+        }, status=status.HTTP_200_OK)
 
 
 class TrainerCreateView(generics.CreateAPIView):
@@ -329,6 +436,21 @@ class AdminAnalyticsView(APIView):
         active_trainers = User.objects.filter(user_type='trainer', is_active=True).count()
         suspended_trainers = User.objects.filter(user_type='trainer', is_active=False).count()
 
+        # Count trainers with expired trials (pending auto-block)
+        # Include both 'trial' and 'expired' status
+        expired_trial_trainers = User.objects.filter(
+            user_type='trainer',
+            subscription_status__in=['trial', 'expired'],
+            trial_end_date__lt=timezone.now().date(),
+            account_blocked=False
+        ).count()
+
+        # Count blocked trainers
+        blocked_trainers = User.objects.filter(
+            user_type='trainer',
+            account_blocked=True
+        ).count()
+
         # Recent registrations (last 30 days)
         thirty_days_ago = timezone.now() - timedelta(days=30)
         new_trainers_this_month = User.objects.filter(
@@ -356,6 +478,8 @@ class AdminAnalyticsView(APIView):
                 'total': total_trainers,
                 'active': active_trainers,
                 'suspended': suspended_trainers,
+                'blocked': blocked_trainers,
+                'expired_trials': expired_trial_trainers,
                 'new_this_month': new_trainers_this_month,
                 'active_last_7_days': active_last_7_days,
             },
@@ -492,4 +616,169 @@ class SubscriptionUpgradeView(APIView):
             'plan_type': plan_type,
             'client_limit': user.client_limit,
             'message': f'Successfully upgraded to {plan_type} plan'
+        }, status=status.HTTP_200_OK)
+
+
+# Admin Subscription Management Views
+
+class TrainerBlockView(APIView):
+    """Block a trainer account (admin only)"""
+    permission_classes = [IsAdmin]
+
+    def post(self, request, pk):
+        try:
+            trainer = User.objects.get(pk=pk, user_type='trainer')
+        except User.DoesNotExist:
+            return Response({
+                'error': 'Trainer not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        block_reason = request.data.get('block_reason', 'Account blocked by administrator')
+
+        # Block the account
+        trainer.account_blocked = True
+        trainer.block_reason = block_reason
+        trainer.blocked_at = timezone.now()
+        trainer.save()
+
+        logger.info(f"Admin {request.user.username} blocked trainer {trainer.username}")
+
+        return Response({
+            'message': f'Trainer {trainer.username} has been blocked',
+            'account_blocked': True,
+            'block_reason': block_reason,
+            'blocked_at': trainer.blocked_at
+        }, status=status.HTTP_200_OK)
+
+
+class TrainerUnblockView(APIView):
+    """Unblock a trainer account (admin only)"""
+    permission_classes = [IsAdmin]
+
+    def post(self, request, pk):
+        try:
+            trainer = User.objects.get(pk=pk, user_type='trainer')
+        except User.DoesNotExist:
+            return Response({
+                'error': 'Trainer not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Unblock the account
+        trainer.account_blocked = False
+        trainer.block_reason = None
+        trainer.blocked_at = None
+        trainer.save()
+
+        logger.info(f"Admin {request.user.username} unblocked trainer {trainer.username}")
+
+        return Response({
+            'message': f'Trainer {trainer.username} has been unblocked',
+            'account_blocked': False
+        }, status=status.HTTP_200_OK)
+
+
+class AdminTrainerSubscriptionUpdateView(APIView):
+    """Update trainer subscription (admin only)"""
+    permission_classes = [IsAdmin]
+
+    def patch(self, request, pk):
+        try:
+            trainer = User.objects.get(pk=pk, user_type='trainer')
+        except User.DoesNotExist:
+            return Response({
+                'error': 'Trainer not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        subscription_status = request.data.get('subscription_status')
+        plan_type = request.data.get('plan_type')
+        client_limit = request.data.get('client_limit')
+        extend_trial_days = request.data.get('extend_trial_days')
+
+        # Update subscription status
+        if subscription_status:
+            valid_statuses = ['trial', 'active', 'expired', 'cancelled', 'suspended']
+            if subscription_status not in valid_statuses:
+                return Response({
+                    'error': 'Invalid subscription status',
+                    'valid_statuses': valid_statuses
+                }, status=status.HTTP_400_BAD_REQUEST)
+            trainer.subscription_status = subscription_status
+
+        # Update plan type
+        if plan_type:
+            valid_plans = ['trial', 'starter', 'professional', 'enterprise']
+            if plan_type not in valid_plans:
+                return Response({
+                    'error': 'Invalid plan type',
+                    'valid_plans': valid_plans
+                }, status=status.HTTP_400_BAD_REQUEST)
+            trainer.plan_type = plan_type
+
+        # Update client limit
+        if client_limit is not None:
+            trainer.client_limit = client_limit
+
+        # Extend trial
+        if extend_trial_days:
+            if trainer.trial_end_date:
+                trainer.trial_end_date = trainer.trial_end_date + timedelta(days=extend_trial_days)
+            else:
+                trainer.trial_start_date = timezone.now().date()
+                trainer.trial_end_date = timezone.now().date() + timedelta(days=extend_trial_days)
+                trainer.subscription_status = 'trial'
+                trainer.plan_type = 'trial'
+
+        trainer.save()
+
+        # Auto-unblock if admin intervention makes account valid again
+        # This includes: changing status to 'active', extending trial, or changing plan type
+        if trainer.account_blocked:
+            # Check if account should no longer be blocked based on new subscription settings
+            should_unblock = False
+
+            # Unblock if subscription status changed to 'active'
+            if subscription_status == 'active':
+                should_unblock = True
+                logger.info(f"Auto-unblocking {trainer.username} - subscription set to active")
+
+            # Unblock if trial was extended and is now in the future
+            elif extend_trial_days and trainer.trial_end_date and timezone.now().date() <= trainer.trial_end_date:
+                should_unblock = True
+                logger.info(f"Auto-unblocking {trainer.username} - trial extended to {trainer.trial_end_date}")
+
+            # Unblock if subscription status changed away from 'trial'/'expired'
+            elif subscription_status and subscription_status not in ['trial', 'expired']:
+                should_unblock = True
+                logger.info(f"Auto-unblocking {trainer.username} - subscription status changed to {subscription_status}")
+
+            # Unblock if account should no longer be auto-blocked based on current settings
+            elif not trainer.should_be_auto_blocked:
+                should_unblock = True
+                logger.info(f"Auto-unblocking {trainer.username} - trial no longer expired")
+
+            if should_unblock:
+                trainer.account_blocked = False
+                trainer.block_reason = None
+                trainer.blocked_at = None
+                trainer.save(update_fields=['account_blocked', 'block_reason', 'blocked_at'])
+                logger.info(f"Admin {request.user.username} auto-unblocked trainer {trainer.username}")
+
+        logger.info(f"Admin {request.user.username} updated subscription for trainer {trainer.username}")
+
+        return Response({
+            'message': 'Subscription updated successfully',
+            'subscription': {
+                'status': trainer.subscription_status,
+                'plan_type': trainer.plan_type,
+                'trial_start_date': trainer.trial_start_date,
+                'trial_end_date': trainer.trial_end_date,
+                'is_trial_active': trainer.is_trial_active,
+                'days_until_trial_end': trainer.days_until_trial_end,
+                'client_limit': trainer.get_client_limit(),
+            },
+            'blocking': {
+                'account_blocked': trainer.account_blocked,
+                'block_reason': trainer.block_reason,
+                'blocked_at': trainer.blocked_at,
+            }
         }, status=status.HTTP_200_OK)

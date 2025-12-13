@@ -17,7 +17,9 @@ import PaymentsPage from './pages/PaymentsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import BookingsPage from './pages/BookingsPage';
 import TrainersPage from './pages/TrainersPage';
+import TrainerDetailPage from './pages/TrainerDetailPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import BlockedAccountPage from './pages/BlockedAccountPage';
 
 // Terms Redirect Component
 const TermsRedirect: React.FC = () => {
@@ -99,6 +101,7 @@ const App: React.FC = () => {
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/terms" element={<TermsRedirect />} />
+            <Route path="/blocked" element={<BlockedAccountPage />} />
 
             {/* Protected Routes */}
             <Route
@@ -127,6 +130,16 @@ const App: React.FC = () => {
                 <ProtectedRoute adminOnly>
                   <MainLayout>
                     <TrainersPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/trainers/:trainerId"
+              element={
+                <ProtectedRoute adminOnly>
+                  <MainLayout>
+                    <TrainerDetailPage />
                   </MainLayout>
                 </ProtectedRoute>
               }

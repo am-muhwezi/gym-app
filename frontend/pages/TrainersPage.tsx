@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
@@ -9,6 +10,7 @@ import { trainerService } from '../services';
 import { useToast } from '../context/ToastContext';
 
 const TrainersPage: React.FC = () => {
+    const navigate = useNavigate();
     const { showSuccess, showError } = useToast();
 
     const [trainers, setTrainers] = useState<Trainer[]>([]);
@@ -332,6 +334,7 @@ const TrainersPage: React.FC = () => {
                                     <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Trainer</th>
                                     <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Contact</th>
                                     <th className="text-center py-3 px-4 text-gray-400 font-medium text-sm">Status</th>
+                                    <th className="text-center py-3 px-4 text-gray-400 font-medium text-sm">Subscription</th>
                                     <th className="text-center py-3 px-4 text-gray-400 font-medium text-sm">On Platform</th>
                                     <th className="text-center py-3 px-4 text-gray-400 font-medium text-sm">Last Seen</th>
                                     <th className="text-center py-3 px-4 text-gray-400 font-medium text-sm">Actions</th>
@@ -409,6 +412,28 @@ const TrainersPage: React.FC = () => {
                                             </td>
                                             <td className="py-4 px-4">
                                                 <div className="text-center">
+                                                    {trainer.subscription_status && (
+                                                        <>
+                                                            <Badge variant={
+                                                                trainer.subscription_status === 'trial' ? 'warning' :
+                                                                trainer.subscription_status === 'active' ? 'success' : 'danger'
+                                                            }>
+                                                                {trainer.plan_type || trainer.subscription_status}
+                                                            </Badge>
+                                                            {trainer.is_trial_active && trainer.days_until_trial_end !== null && (
+                                                                <p className="text-xs text-yellow-400 mt-1">
+                                                                    {trainer.days_until_trial_end} days left
+                                                                </p>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                    {!trainer.subscription_status && (
+                                                        <p className="text-gray-500 text-sm">-</p>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-4">
+                                                <div className="text-center">
                                                     <p className="font-semibold text-white">{daysSinceJoined}</p>
                                                     <p className="text-xs text-gray-500">days</p>
                                                 </div>
@@ -426,6 +451,9 @@ const TrainersPage: React.FC = () => {
                                             </td>
                                             <td className="py-4 px-4">
                                                 <div className="flex items-center justify-center gap-2">
+                                                    <Button onClick={() => navigate(`/admin/trainers/${trainer.id}`)} variant="primary" size="sm">
+                                                        View
+                                                    </Button>
                                                     <Button onClick={() => openEditModal(trainer)} variant="secondary" size="sm">
                                                         Edit
                                                     </Button>

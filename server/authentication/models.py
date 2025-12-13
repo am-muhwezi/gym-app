@@ -94,6 +94,22 @@ class User(AbstractUser):
         help_text='Max clients allowed (-1 for unlimited)'
     )
 
+    # Account blocking fields
+    account_blocked = models.BooleanField(
+        default=False,
+        help_text='Whether the account is blocked from access'
+    )
+    block_reason = models.TextField(
+        blank=True,
+        null=True,
+        help_text='Reason for blocking the account'
+    )
+    blocked_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='When the account was blocked'
+    )
+
     USERNAME_FIELD='username'
     REQUIRED_FIELDS=['email', 'phone_number']
 
@@ -122,6 +138,22 @@ class User(AbstractUser):
             return None
         delta = self.trial_end_date - timezone.now().date()
         return max(0, delta.days)
+
+    @property
+    def should_be_auto_blocked(self):
+        """Check if account should be auto-blocked due to expired trial"""
+        # Only auto-block if:
+        # 1. User is a trainer
+        # 2. Subscription status is 'trial' or 'expired' (admin hasn't upgraded to 'active')
+        # 3. Trial has expired
+        if self.user_type != 'trainer':
+            return False
+        # Admin can prevent auto-block by setting status to 'active', 'cancelled', or 'suspended'
+        if self.subscription_status not in ['trial', 'expired']:
+            return False
+        if not self.trial_end_date:
+            return False
+        return timezone.now().date() > self.trial_end_date
 
     def get_client_limit(self):
         """Get maximum allowed clients for this user"""

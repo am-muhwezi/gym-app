@@ -842,9 +842,22 @@ const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
     const [loading, setLoading] = useState(true);
     const [showAddPlanModal, setShowAddPlanModal] = useState(false);
     const [showAddExerciseModal, setShowAddExerciseModal] = useState(false);
+    const [showEditPlanModal, setShowEditPlanModal] = useState(false);
+    const [showEditExerciseModal, setShowEditExerciseModal] = useState(false);
     const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+    const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
     const [newPlan, setNewPlan] = useState({ name: '', description: '' });
+    const [editPlan, setEditPlan] = useState({ name: '', description: '' });
     const [newExercise, setNewExercise] = useState({
+        name: '',
+        description: '',
+        sets: 3,
+        reps: 10,
+        weight: '',
+        rpe: '',
+        rest_period_seconds: 60,
+    });
+    const [editExercise, setEditExercise] = useState({
         name: '',
         description: '',
         sets: 3,
@@ -937,6 +950,72 @@ const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
         }
     };
 
+    const handleEditPlan = (plan: WorkoutPlanType) => {
+        setSelectedPlanId(plan.id);
+        setEditPlan({ name: plan.name, description: plan.description });
+        setShowEditPlanModal(true);
+    };
+
+    const handleUpdatePlan = async () => {
+        if (!selectedPlanId || !editPlan.name.trim()) {
+            showWarning('Please enter a workout plan name');
+            return;
+        }
+
+        try {
+            await workoutService.updateWorkoutPlan(clientId, selectedPlanId, editPlan);
+            showSuccess('Workout plan updated successfully');
+            setEditPlan({ name: '', description: '' });
+            setShowEditPlanModal(false);
+            setSelectedPlanId(null);
+            await loadWorkoutPlans();
+        } catch (error: any) {
+            showError(`Failed to update workout plan: ${error.message}`);
+        }
+    };
+
+    const handleEditExercise = (planId: string, exercise: ExerciseType) => {
+        setSelectedPlanId(planId);
+        setSelectedExerciseId(exercise.id);
+        setEditExercise({
+            name: exercise.name,
+            description: exercise.description || '',
+            sets: exercise.sets,
+            reps: exercise.reps,
+            weight: exercise.weight?.toString() || '',
+            rpe: exercise.rpe?.toString() || '',
+            rest_period_seconds: exercise.rest_period_seconds,
+        });
+        setShowEditExerciseModal(true);
+    };
+
+    const handleUpdateExercise = async () => {
+        if (!selectedPlanId || !selectedExerciseId || !editExercise.name.trim()) {
+            showWarning('Please enter exercise name');
+            return;
+        }
+
+        try {
+            await workoutService.updateExercise(clientId, selectedPlanId, selectedExerciseId, {
+                name: editExercise.name,
+                description: editExercise.description,
+                sets: editExercise.sets,
+                reps: editExercise.reps,
+                weight: editExercise.weight ? parseFloat(editExercise.weight) : undefined,
+                rpe: editExercise.rpe ? parseInt(editExercise.rpe) : undefined,
+                rest_period_seconds: editExercise.rest_period_seconds,
+            });
+            showSuccess('Exercise updated successfully');
+            setEditExercise({ name: '', description: '', sets: 3, reps: 10, weight: '', rpe: '', rest_period_seconds: 60 });
+            setShowEditExerciseModal(false);
+            setSelectedPlanId(null);
+            setSelectedExerciseId(null);
+            await loadWorkoutPlans();
+        } catch (error: any) {
+            showError(`Failed to update exercise: ${error.message}`);
+        }
+    };
+
     if (loading) {
         return <p className="text-gray-400">Loading workout plans...</p>;
     }
@@ -972,7 +1051,15 @@ const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
                                     <Button
                                         size="sm"
                                         variant="secondary"
+                                        onClick={() => handleEditPlan(plan)}
+                                    >
+                                        Edit Plan
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="secondary"
                                         onClick={() => handleRemovePlan(plan.id)}
+                                        className="bg-red-500 hover:bg-red-600"
                                     >
                                         Remove Plan
                                     </Button>
@@ -998,12 +1085,20 @@ const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
                                                     )}
                                                 </div>
                                             </div>
-                                            <button
-                                                onClick={() => handleRemoveExercise(plan.id, exercise.id)}
-                                                className="text-red-400 hover:text-red-300 text-sm"
-                                            >
-                                                Remove
-                                            </button>
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={() => handleEditExercise(plan.id, exercise)}
+                                                    className="text-blue-400 hover:text-blue-300 text-sm"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => handleRemoveExercise(plan.id, exercise.id)}
+                                                    className="text-red-400 hover:text-red-300 text-sm"
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -1146,6 +1241,141 @@ const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
                                 Cancel
                             </Button>
                             <Button onClick={handleAddExercise}>Add Exercise</Button>
+                        </div>
+                    </Card>
+                </div>
+            )}
+
+            {/* Edit Plan Modal */}
+            {showEditPlanModal && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-md">
+                        <h2 className="text-2xl font-bold mb-4 text-white">Edit Workout Plan</h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-2">Plan Name *</label>
+                                <input
+                                    type="text"
+                                    value={editPlan.name}
+                                    onChange={(e) => setEditPlan({ ...editPlan, name: e.target.value })}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    placeholder="e.g., Monday - Chest & Triceps"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-2">Description</label>
+                                <textarea
+                                    value={editPlan.description}
+                                    onChange={(e) => setEditPlan({ ...editPlan, description: e.target.value })}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    placeholder="Focus on compound movements..."
+                                    rows={3}
+                                />
+                            </div>
+                        </div>
+                        <div className="mt-6 flex gap-3">
+                            <Button variant="secondary" onClick={() => {
+                                setShowEditPlanModal(false);
+                                setSelectedPlanId(null);
+                            }}>
+                                Cancel
+                            </Button>
+                            <Button onClick={handleUpdatePlan}>Update Plan</Button>
+                        </div>
+                    </Card>
+                </div>
+            )}
+
+            {/* Edit Exercise Modal */}
+            {showEditExerciseModal && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-md">
+                        <h2 className="text-2xl font-bold mb-4 text-white">Edit Exercise</h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-2">Exercise Name *</label>
+                                <input
+                                    type="text"
+                                    value={editExercise.name}
+                                    onChange={(e) => setEditExercise({ ...editExercise, name: e.target.value })}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    placeholder="e.g., Bench Press"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-2">Description</label>
+                                <textarea
+                                    value={editExercise.description}
+                                    onChange={(e) => setEditExercise({ ...editExercise, description: e.target.value })}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    placeholder="Barbell flat bench press..."
+                                    rows={2}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-2">Sets</label>
+                                    <input
+                                        type="number"
+                                        value={editExercise.sets}
+                                        onChange={(e) => setEditExercise({ ...editExercise, sets: parseInt(e.target.value) || 0 })}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-2">Reps</label>
+                                    <input
+                                        type="number"
+                                        value={editExercise.reps}
+                                        onChange={(e) => setEditExercise({ ...editExercise, reps: parseInt(e.target.value) || 0 })}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                        placeholder="10"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-2">Weight (kg)</label>
+                                    <input
+                                        type="number"
+                                        step="0.5"
+                                        value={editExercise.weight}
+                                        onChange={(e) => setEditExercise({ ...editExercise, weight: e.target.value })}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                        placeholder="Optional"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-2">RPE (1-10)</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="10"
+                                        value={editExercise.rpe}
+                                        onChange={(e) => setEditExercise({ ...editExercise, rpe: e.target.value })}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                        placeholder="Optional"
+                                    />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-sm text-gray-400 mb-2">Rest Period (seconds)</label>
+                                    <input
+                                        type="number"
+                                        value={editExercise.rest_period_seconds}
+                                        onChange={(e) => setEditExercise({ ...editExercise, rest_period_seconds: parseInt(e.target.value) || 0 })}
+                                        className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700"
+                                        placeholder="60"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mt-6 flex gap-3">
+                            <Button variant="secondary" onClick={() => {
+                                setShowEditExerciseModal(false);
+                                setSelectedPlanId(null);
+                                setSelectedExerciseId(null);
+                            }}>
+                                Cancel
+                            </Button>
+                            <Button onClick={handleUpdateExercise}>Update Exercise</Button>
                         </div>
                     </Card>
                 </div>

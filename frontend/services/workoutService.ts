@@ -62,6 +62,18 @@ export const workoutService = {
   },
 
   /**
+   * Update a workout plan
+   * PATCH /api/clients/{id}/workouts/{planId}/
+   */
+  async updateWorkoutPlan(
+    clientId: string,
+    planId: string,
+    data: Partial<WorkoutPlanCreatePayload>
+  ): Promise<WorkoutPlan> {
+    return apiClient.patch<WorkoutPlan>(`/clients/${clientId}/workouts/${planId}/`, data);
+  },
+
+  /**
    * Delete a workout plan
    * DELETE /api/clients/{id}/workouts/{planId}/
    */
@@ -80,6 +92,22 @@ export const workoutService = {
   ): Promise<Exercise> {
     return apiClient.post<Exercise>(
       `/clients/${clientId}/workouts/${planId}/exercises/`,
+      data
+    );
+  },
+
+  /**
+   * Update an exercise in a workout plan
+   * PATCH /api/clients/{id}/workouts/{planId}/exercises/{exerciseId}/
+   */
+  async updateExercise(
+    clientId: string,
+    planId: string,
+    exerciseId: string,
+    data: Partial<ExerciseCreatePayload>
+  ): Promise<Exercise> {
+    return apiClient.patch<Exercise>(
+      `/clients/${clientId}/workouts/${planId}/exercises/${exerciseId}/`,
       data
     );
   },

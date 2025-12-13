@@ -134,12 +134,17 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
 class TrainerSerializer(serializers.ModelSerializer):
     """Serializer for trainer account management (SaaS Admin perspective)"""
+    is_trial_active = serializers.ReadOnlyField()
+    days_until_trial_end = serializers.ReadOnlyField()
 
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'phone_number', 'user_type',
-            'is_active', 'is_staff', 'date_joined', 'last_login'
+            'is_active', 'is_staff', 'date_joined', 'last_login',
+            'subscription_status', 'plan_type', 'trial_start_date', 'trial_end_date',
+            'is_trial_active', 'days_until_trial_end', 'client_limit',
+            'account_blocked', 'block_reason', 'blocked_at'
         ]
         read_only_fields = ['id', 'date_joined', 'last_login', 'user_type', 'is_staff']
 
