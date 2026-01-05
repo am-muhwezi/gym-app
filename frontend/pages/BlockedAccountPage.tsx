@@ -99,10 +99,10 @@ const BlockedAccountPage: React.FC = () => {
                                 </p>
                                 <div className="mt-3 space-y-2 text-sm">
                                     <p className="text-blue-200">
-                                        <span className="font-semibold">Email:</span> support@trainrup.com
+                                        <span className="font-semibold">Email:</span> trainer@trainrup.fit
                                     </p>
                                     <p className="text-blue-200">
-                                        <span className="font-semibold">Phone:</span> +254 (0) 123 456 789
+                                        <span className="font-semibold">Phone:</span> +254 (0) 799 632 165
                                     </p>
                                 </div>
                             </div>
