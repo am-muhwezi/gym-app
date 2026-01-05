@@ -346,7 +346,7 @@ const ProfilePage: React.FC = () => {
                                     </svg>
                                     <div>
                                         <div className="text-sm text-gray-400 mb-1">Email</div>
-                                        <a href="mailto:sales@trainrup.com" className="text-white hover:text-brand-primary transition-colors">
+                                        <a href="mailto:trainer@trainrup.com" className="text-white hover:text-brand-primary transition-colors">
                                             sales@trainrup.com
                                         </a>
                                     </div>
@@ -359,7 +359,7 @@ const ProfilePage: React.FC = () => {
                                     <div>
                                         <div className="text-sm text-gray-400 mb-1">Phone</div>
                                         <a href="tel:+254700000000" className="text-white hover:text-brand-primary transition-colors">
-                                            +254 700 000 000
+                                            +254 799 632 165
                                         </a>
                                     </div>
                                 </div>
