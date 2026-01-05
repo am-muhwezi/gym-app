@@ -122,7 +122,7 @@ const ClientsListPage: React.FC = () => {
     const handleAddClient = async () => {
         setError('');
 
-        if (!firstName || !lastName || !email || !phone) {
+        if (!firstName || !lastName || !phone) {
             setError('Please fill in all required fields');
             return;
         }
@@ -289,11 +289,10 @@ const ClientsListPage: React.FC = () => {
                             />
                             <input
                                 type="email"
-                                placeholder="Email *"
+                                placeholder="Email (Optional)"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700 focus:outline-none focus:ring-2 focus:ring-brand-primary placeholder-gray-500"
-                                required
                             />
                             <input
                                 type="tel"
@@ -313,14 +312,19 @@ const ClientsListPage: React.FC = () => {
                                 <option value="F">Female</option>
                                 <option value="O">Other</option>
                             </select>
-                            <input
-                                type="date"
-                                placeholder="Date of Birth (Optional)"
-                                value={dob}
-                                onChange={(e) => setDob(e.target.value)}
-                                max={new Date().toISOString().split('T')[0]}
-                                className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700 focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                            />
+                            <div>
+                                <label htmlFor="dob-input" className="block text-sm text-gray-400 mb-2">
+                                    Date of Birth (Optional)
+                                </label>
+                                <input
+                                    id="dob-input"
+                                    type="date"
+                                    value={dob}
+                                    onChange={(e) => setDob(e.target.value)}
+                                    max={new Date().toISOString().split('T')[0]}
+                                    className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                                />
+                            </div>
                         </div>
                         <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 sm:space-x-4">
                             <Button

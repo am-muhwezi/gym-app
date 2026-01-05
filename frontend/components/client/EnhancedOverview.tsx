@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Client, Goal, Payment, ClientProgress, Log } from '../../types';
 import { Card, StatCard, Badge, ProgressBar, Button } from '../ui';
 import { goalService, paymentService, progressService } from '../../services';
+import type { WorkoutPlan as WorkoutPlanType } from '../../services/workoutService';
 
 interface EnhancedOverviewProps {
   client: Client;
@@ -9,6 +10,7 @@ interface EnhancedOverviewProps {
   payments: Payment[];
   logs: Log[];
   progress: ClientProgress[];
+  workoutPlans?: WorkoutPlanType[];
 }
 
 const EnhancedOverview: React.FC<EnhancedOverviewProps> = ({
@@ -17,6 +19,7 @@ const EnhancedOverview: React.FC<EnhancedOverviewProps> = ({
   payments,
   logs,
   progress,
+  workoutPlans = [],
 }) => {
   const [paymentStats, setPaymentStats] = useState<any>(null);
 
@@ -441,15 +444,55 @@ const EnhancedOverview: React.FC<EnhancedOverviewProps> = ({
         </Card>
       </div>
 
-      {/* Workout Routine Section - Placeholder for now */}
+      {/* Workout Routine Section - Simple List */}
       <Card>
         <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-2">
           <span>💪</span> Current Workout Routine
         </h3>
-        <div className="text-center py-8">
-          <p className="text-gray-400">No workout routine assigned yet</p>
-          <p className="text-sm text-gray-500 mt-2">Go to Workouts tab to create a routine</p>
-        </div>
+        {workoutPlans && workoutPlans.length > 0 ? (
+          <div className="space-y-3">
+            {workoutPlans.map((plan, index) => (
+              <div
+                key={plan.id || index}
+                className="p-4 bg-dark-800 rounded-lg border border-dark-700 hover:border-brand-primary transition-all"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">💪</span>
+                    <div>
+                      <div className="font-semibold text-white">{plan.day_of_week || `Workout ${index + 1}`}</div>
+                      <div className="text-sm text-gray-400">{plan.focus_area || 'General Training'}</div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {plan.exercises?.length || 0} exercises
+                  </div>
+                </div>
+
+                {plan.exercises && plan.exercises.length > 0 && (
+                  <div className="mt-3 space-y-1.5 pl-8">
+                    {plan.exercises.map((exercise, idx) => (
+                      <div key={idx} className="text-sm text-gray-400 flex items-center gap-2">
+                        <span className="text-brand-primary">•</span>
+                        <span>{exercise.exercise_name}</span>
+                        {exercise.sets && exercise.reps && (
+                          <span className="text-xs text-gray-500">
+                            ({exercise.sets} × {exercise.reps})
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-400">No workout routine assigned yet</p>
+            <p className="text-sm text-gray-500 mt-2">Go to Workouts tab to create a routine</p>
+          </div>
+        )}
       </Card>
     </div>
   );

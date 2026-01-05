@@ -37,13 +37,7 @@ class ClientViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Get clients for authenticated trainer only"""
-        queryset = Client.objects.filter(trainer=self.request.user).select_related('trainer')
-
-        # Admins can see all clients, trainers only see non-removed
-        if not (self.request.user.user_type == 'admin' or self.request.user.is_superuser):
-            queryset = queryset.filter(is_removed=False)
-
-        return queryset
+        return Client.objects.filter(trainer=self.request.user).select_related('trainer')
 
     def get_serializer_class(self):
         """Use different serializers based on action"""
@@ -203,7 +197,7 @@ class ClientViewSet(viewsets.ModelViewSet):
         return Response(ClientSerializer(client).data)
 
     def destroy(self, request, pk=None):
-        """Soft-delete client (mark as removed)"""
+        """Hard-delete client (permanently delete)"""
         try:
             client = self.get_queryset().get(pk=pk)
         except Client.DoesNotExist:
@@ -212,16 +206,15 @@ class ClientViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Perform soft delete
-        client.is_removed = True
-        client.removed_at = timezone.now()
-        client.removed_by = request.user
-        client.removal_reason = request.data.get('reason', '')
-        client.save()
+        # Get client name before deletion
+        client_name = client.full_name
+
+        # Perform hard delete - this will cascade delete all related data
+        client.delete()
 
         return Response({
-            'status': 'client removed',
-            'message': 'Client has been removed from your account'
+            'status': 'client deleted',
+            'message': f'Client {client_name} and all associated data have been permanently deleted'
         }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])

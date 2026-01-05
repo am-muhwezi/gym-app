@@ -95,4 +95,49 @@ export const authService = {
         );
         return response;
     },
+
+    /**
+     * Get user profile with subscription details
+     */
+    async getProfile(): Promise<User> {
+        const response = await apiClient.get<User>('/auth/profile/');
+        return response;
+    },
+
+    /**
+     * Update user profile
+     */
+    async updateProfile(data: { first_name?: string; last_name?: string }): Promise<any> {
+        const response = await apiClient.patch('/auth/profile/', data);
+        return response;
+    },
+
+    /**
+     * Delete user account (requires password confirmation)
+     */
+    async deleteAccount(password: string): Promise<{ message: string }> {
+        const response = await apiClient.delete<{ message: string }>('/auth/profile/delete/', {
+            password,
+        });
+        return response;
+    },
+
+    /**
+     * Get subscription status
+     */
+    async getSubscriptionStatus(): Promise<any> {
+        const response = await apiClient.get('/auth/subscription/status/');
+        return response;
+    },
+
+    /**
+     * Upgrade subscription plan
+     */
+    async upgradeSubscription(planType: string, paymentMethod?: string): Promise<any> {
+        const response = await apiClient.post('/auth/subscription/upgrade/', {
+            plan_type: planType,
+            payment_method: paymentMethod,
+        });
+        return response;
+    },
 };

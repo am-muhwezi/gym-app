@@ -218,6 +218,10 @@ class ClientSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         """Validate email is unique per trainer (excluding current instance on update)"""
+        # Allow empty email
+        if not value:
+            return value
+
         instance = self.instance
         request = self.context.get('request')
         trainer = request.user if request else None
@@ -307,6 +311,10 @@ class ClientCreateUpdateSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         """Validate email is unique per trainer"""
+        # Allow empty email
+        if not value:
+            return value
+
         instance = self.instance
         request = self.context.get('request')
         trainer = request.user if request else None

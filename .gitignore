@@ -1,0 +1,99 @@
+# Node/Vite/React
+node_modules/
+dist/
+build/
+.env
+.env.*
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python/Django
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+*.egg-info/
+.DS_Store
+.env
+*.env
+*.bak
+*.swp
+*.swo
+
+# VSCode
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Misc
+*.local
+*.cache
+*.pid
+*.seed
+*.cover
+*.orig
+*.rej
+
+# Frontend build
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.env
+frontend/.env.*
+frontend/*.log
+
+# Server build
+server/__pycache__/
+server/*.pyc
+server/*.pyo
+server/*.pyd
+server/*.sqlite3
+server/*.db
+server/.env
+server/.env.*
+server/*.log
+server/venv/
+server/.venv/
+
+# Django migrations
+server/**/migrations/
+server/**/migrations/*.py
+server/**/migrations/*.pyc
+
+# Docs
+*.pdf
+*.docx
+*.xlsx
+*.pptx
+*/docs
+
+# Others
+.idea/
+*.iml
+*.sublime-workspace
+*.sublime-project
+
+# Emacs
+*~
+\#*\#
+.emacs.desktop
+.emacs.desktop.lock
+*.elc
+auto-save-list/
+
+
+# Databases
+*db.sqlite3
+*.db
+
+# Credentials
+*.key
+*credentials*
+*token*
+*scripts/

@@ -782,3 +782,72 @@ class AdminTrainerSubscriptionUpdateView(APIView):
                 'blocked_at': trainer.blocked_at,
             }
         }, status=status.HTTP_200_OK)
+
+
+# Profile Management Views
+
+class ProfileView(APIView):
+    """Get and update user profile"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Get user profile"""
+        serializer = serializers.ProfileSerializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        """Update user profile"""
+        serializer = serializers.ProfileUpdateSerializer(
+            request.user,
+            data=request.data,
+            partial=True
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            # Return full profile data
+            profile_serializer = serializers.ProfileSerializer(request.user)
+            return Response({
+                'message': 'Profile updated successfully',
+                'profile': profile_serializer.data
+            }, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DeleteAccountView(APIView):
+    """Delete user account and all related data"""
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request):
+        """Delete current user account"""
+        user = request.user
+
+        # Password confirmation for security
+        password = request.data.get('password')
+        if not password:
+            return Response({
+                'error': 'Password is required to delete account'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Verify password
+        if not user.check_password(password):
+            return Response({
+                'error': 'Invalid password'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Delete the token first
+        try:
+            request.user.auth_token.delete()
+        except:
+            pass
+
+        # Log the deletion
+        logger.info(f"User {user.username} ({user.email}) deleted their account")
+
+        # Delete the user (this will cascade delete all related data)
+        user.delete()
+
+        return Response({
+            'message': 'Account and all associated data have been permanently deleted'
+        }, status=status.HTTP_200_OK)

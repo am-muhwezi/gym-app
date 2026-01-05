@@ -6,13 +6,31 @@ from clients.models import Client
 class PaymentSerializer(serializers.ModelSerializer):
     """Full Payment serializer with all details"""
 
-    client_name = serializers.CharField(source='client.full_name', read_only=True)
-    client_email = serializers.EmailField(source='client.email', read_only=True)
-    client_phone = serializers.CharField(source='client.phone', read_only=True)
+    client_name = serializers.SerializerMethodField()
+    client_email = serializers.SerializerMethodField()
+    client_phone = serializers.SerializerMethodField()
     is_overdue = serializers.BooleanField(read_only=True)
     days_overdue = serializers.IntegerField(read_only=True)
     payment_method_display = serializers.CharField(source='get_payment_method_display', read_only=True)
     payment_status_display = serializers.CharField(source='get_payment_status_display', read_only=True)
+
+    def get_client_name(self, obj):
+        """Get client name, handle deleted clients"""
+        if obj.client and not obj.client.is_removed:
+            return obj.client.full_name
+        return "Unknown Client"
+
+    def get_client_email(self, obj):
+        """Get client email, handle deleted clients"""
+        if obj.client and not obj.client.is_removed:
+            return obj.client.email
+        return None
+
+    def get_client_phone(self, obj):
+        """Get client phone, handle deleted clients"""
+        if obj.client and not obj.client.is_removed:
+            return obj.client.phone
+        return None
 
     class Meta:
         model = Payment
@@ -52,9 +70,15 @@ class PaymentSerializer(serializers.ModelSerializer):
 class PaymentListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for payment list views"""
 
-    client_name = serializers.CharField(source='client.full_name', read_only=True)
+    client_name = serializers.SerializerMethodField()
     is_overdue = serializers.BooleanField(read_only=True)
     payment_status_display = serializers.CharField(source='get_payment_status_display', read_only=True)
+
+    def get_client_name(self, obj):
+        """Get client name, handle deleted clients"""
+        if obj.client and not obj.client.is_removed:
+            return obj.client.full_name
+        return "Unknown Client"
 
     class Meta:
         model = Payment
@@ -177,9 +201,9 @@ class MpesaPaymentSerializer(serializers.Serializer):
 class PaymentReceiptSerializer(serializers.ModelSerializer):
     """Serializer for generating payment receipts"""
 
-    client_name = serializers.CharField(source='client.full_name', read_only=True)
-    client_email = serializers.EmailField(source='client.email', read_only=True)
-    client_phone = serializers.CharField(source='client.phone', read_only=True)
+    client_name = serializers.SerializerMethodField()
+    client_email = serializers.SerializerMethodField()
+    client_phone = serializers.SerializerMethodField()
     trainer_name = serializers.SerializerMethodField()
     payment_method_display = serializers.CharField(source='get_payment_method_display', read_only=True)
 
@@ -202,7 +226,27 @@ class PaymentReceiptSerializer(serializers.ModelSerializer):
             'created_at',
         ]
 
+    def get_client_name(self, obj):
+        """Get client name, handle deleted clients"""
+        if obj.client and not obj.client.is_removed:
+            return obj.client.full_name
+        return "Unknown Client"
+
+    def get_client_email(self, obj):
+        """Get client email, handle deleted clients"""
+        if obj.client and not obj.client.is_removed:
+            return obj.client.email
+        return None
+
+    def get_client_phone(self, obj):
+        """Get client phone, handle deleted clients"""
+        if obj.client and not obj.client.is_removed:
+            return obj.client.phone
+        return None
+
     def get_trainer_name(self, obj):
         """Get trainer's full name"""
-        user = obj.client.trainer
-        return f"{user.first_name} {user.last_name}" if user.first_name else user.email
+        if obj.client:
+            user = obj.client.trainer
+            return f"{user.first_name} {user.last_name}" if user.first_name else user.email
+        return "Unknown"
