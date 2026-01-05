@@ -71,6 +71,7 @@ server/**/migrations/*.pyc
 *.docx
 *.xlsx
 *.pptx
+*/docs
 
 # Others
 .idea/
@@ -85,3 +86,14 @@ server/**/migrations/*.pyc
 .emacs.desktop.lock
 *.elc
 auto-save-list/
+
+
+# Databases
+*db.sqlite3
+*.db
+
+# Credentials
+*.key
+*credentials*
+*token*
+*scripts/
