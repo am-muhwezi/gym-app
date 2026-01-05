@@ -46,8 +46,10 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Get payments for authenticated trainer's clients only"""
+        # Exclude payments where client has been deleted (client is null)
         return Payment.objects.filter(
-            client__trainer=self.request.user
+            client__trainer=self.request.user,
+            client__isnull=False
         ).select_related('client')
 
     def get_serializer_class(self):

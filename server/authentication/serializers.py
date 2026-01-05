@@ -256,3 +256,36 @@ class TermsAcceptanceSerializer(serializers.ModelSerializer):
         else:
             ip = request.META.get('REMOTE_ADDR')
         return ip
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    """Serializer for user profile with subscription details"""
+    is_trial_active = serializers.ReadOnlyField()
+    days_until_trial_end = serializers.ReadOnlyField()
+    client_limit = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'email', 'phone_number', 'first_name', 'last_name',
+            'user_type', 'subscription_status', 'plan_type', 'trial_start_date',
+            'trial_end_date', 'is_trial_active', 'days_until_trial_end',
+            'client_limit', 'date_joined'
+        ]
+        read_only_fields = [
+            'id', 'username', 'email', 'phone_number', 'user_type',
+            'subscription_status', 'plan_type', 'trial_start_date',
+            'trial_end_date', 'date_joined'
+        ]
+
+    def get_client_limit(self, obj):
+        """Get maximum allowed clients"""
+        return obj.get_client_limit()
+
+
+class ProfileUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating user profile"""
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name']

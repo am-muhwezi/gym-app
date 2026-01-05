@@ -48,8 +48,8 @@ def dashboard_analytics(request):
         'new_clients_this_period': all_clients.filter(created_at__date__gte=start_date).count(),
     }
 
-    # Payment/Revenue metrics
-    all_payments = Payment.objects.filter(client__trainer=trainer)
+    # Payment/Revenue metrics - only include payments with existing clients
+    all_payments = Payment.objects.filter(client__trainer=trainer, client__isnull=False)
     period_payments = all_payments.filter(created_at__date__gte=start_date)
     completed_payments = period_payments.filter(payment_status='completed')
 
@@ -232,21 +232,24 @@ def performance_metrics(request):
     this_month_start = today.replace(day=1)
     last_month_start = (this_month_start - timedelta(days=1)).replace(day=1)
 
-    # This month metrics
+    # This month metrics - exclude deleted clients
     this_month_revenue = Payment.objects.filter(
         client__trainer=trainer,
+        client__is_removed=False,
         payment_status='completed',
         payment_date__gte=this_month_start
     ).aggregate(total=Sum('amount'))['total'] or 0
 
     this_month_clients = Client.objects.filter(
         trainer=trainer,
+        is_removed=False,
         created_at__date__gte=this_month_start
     ).count()
 
-    # Last month metrics
+    # Last month metrics - exclude deleted clients
     last_month_revenue = Payment.objects.filter(
         client__trainer=trainer,
+        client__is_removed=False,
         payment_status='completed',
         payment_date__gte=last_month_start,
         payment_date__lt=this_month_start
@@ -254,6 +257,7 @@ def performance_metrics(request):
 
     last_month_clients = Client.objects.filter(
         trainer=trainer,
+        is_removed=False,
         created_at__date__gte=last_month_start,
         created_at__date__lt=this_month_start
     ).count()

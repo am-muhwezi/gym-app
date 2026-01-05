@@ -4,19 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 
-const DumbbellIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-primary">
-        <path d="M14.4 14.4 9.6 9.6"/>
-        <path d="M18 11l-4-4-4 4"/>
-        <path d="m18 6-4 4"/>
-        <path d="m6 18-4-4"/>
-        <path d="m12 12 5 5"/>
-        <path d="M22 12h-5"/>
-        <path d="M9 12H4"/>
-        <path d="M12 22v-5"/>
-        <path d="M12 9V4"/>
-    </svg>
-);
 
 const SignupPage: React.FC = () => {
     const navigate = useNavigate();
@@ -86,7 +73,7 @@ const SignupPage: React.FC = () => {
                 {/* Logo */}
                 <div className="text-center mb-8">
                     <div className="flex justify-center mb-4">
-                        <DumbbellIcon />
+                        <img src="/icons/T-Logo.png" alt="TrainrUp" className="h-16" />
                     </div>
                     <h1 className="text-3xl font-bold text-white mb-2">TrainrUp</h1>
                     <p className="text-gray-400">Create Your Trainer Account</p>

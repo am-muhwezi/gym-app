@@ -44,9 +44,8 @@ const ForgotPasswordPage: React.FC = () => {
                 {/* Logo */}
                 <div className="text-center mb-8">
                     <div className="flex justify-center mb-4">
-                        <img src="/icons/icon.svg" alt="TrainrUp Logo" className="w-20 h-20" />
+                        <img src="/icons/TrainrUp.png" alt="TrainrUp Logo" className="h-20" />
                     </div>
-                    <h1 className="text-3xl font-bold text-white mb-2">TrainrUp</h1>
                     <p className="text-gray-400">Personal Training Management</p>
                 </div>
 

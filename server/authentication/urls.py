@@ -33,4 +33,8 @@ urlpatterns = [
     # Subscription Management
     path('subscription/status/', views.SubscriptionStatusView.as_view(), name='subscription-status'),
     path('subscription/upgrade/', views.SubscriptionUpgradeView.as_view(), name='subscription-upgrade'),
+
+    # Profile Management
+    path('profile/', views.ProfileView.as_view(), name='profile'),
+    path('profile/delete/', views.DeleteAccountView.as_view(), name='delete-account'),
 ]

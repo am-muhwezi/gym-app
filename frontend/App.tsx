@@ -20,6 +20,7 @@ import TrainersPage from './pages/TrainersPage';
 import TrainerDetailPage from './pages/TrainerDetailPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import BlockedAccountPage from './pages/BlockedAccountPage';
+import ProfilePage from './pages/ProfilePage';
 
 // Terms Redirect Component
 const TermsRedirect: React.FC = () => {
@@ -202,6 +203,16 @@ const App: React.FC = () => {
                 <ProtectedRoute>
                   <MainLayout>
                     <AnalyticsPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <ProfilePage />
                   </MainLayout>
                 </ProtectedRoute>
               }

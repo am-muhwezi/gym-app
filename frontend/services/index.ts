@@ -12,6 +12,7 @@ export { paymentService } from './paymentService';
 export { logService } from './logService';
 export { workoutService } from './workoutService';
 export { exportService } from './exportService';
+export { pdfService } from './pdfService';
 export { generatePaymentReceipt, printReceipt } from './receiptService';
 export { bookingService } from './bookingService';
 export { analyticsService } from './analyticsService';

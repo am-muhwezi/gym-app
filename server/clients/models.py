@@ -29,7 +29,7 @@ class Client(models.Model):
     # Basic Info
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    email = models.EmailField(max_length=255)
+    email = models.EmailField(max_length=255, blank=True, null=True)
     phone = models.CharField(max_length=20)
     dob = models.DateField(null=True, blank=True, verbose_name="Date of Birth")
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True)
@@ -66,10 +66,12 @@ class Client(models.Model):
         ]
         # Ensure a trainer can't add the same client twice
         # But different trainers can have clients with same email/phone
+        # Email is optional, so only enforce uniqueness for non-null emails
         constraints = [
             models.UniqueConstraint(
                 fields=['trainer', 'email'],
-                name='unique_trainer_client_email'
+                name='unique_trainer_client_email',
+                condition=models.Q(email__isnull=False)
             ),
             models.UniqueConstraint(
                 fields=['trainer', 'phone'],

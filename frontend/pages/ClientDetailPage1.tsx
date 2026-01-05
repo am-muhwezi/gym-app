@@ -6,7 +6,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { Client, Goal, Payment, Log, ClientProgress, WorkoutRoutine } from '../types';
-import { clientService, goalService, paymentService, logService, progressService, workoutService, exportService, pdfService } from '../services';
+import { clientService, goalService, paymentService, logService, progressService, workoutService, exportService } from '../services';
 import type { WorkoutPlan as WorkoutPlanType, Exercise as ExerciseType } from '../services/workoutService';
 import EnhancedOverview from '../components/client/EnhancedOverview';
 import GoalsManager from '../components/client/GoalsManager';
@@ -241,38 +241,6 @@ const ClientDetailPage: React.FC = () => {
                                     >
                                         Workouts (CSV)
                                     </button>
-                                    <button
-                                        onClick={() => {
-                                            try {
-                                                if (workoutPlans.length === 0) {
-                                                    showError('No workout plans to export');
-                                                    return;
-                                                }
-                                                pdfService.generateWorkoutPlan(client, workoutPlans);
-                                                showSuccess('Workout Plan PDF downloaded successfully');
-                                            } catch (error: any) {
-                                                showError(error.message || 'Failed to generate workout PDF');
-                                            }
-                                            setShowExportMenu(false);
-                                        }}
-                                        className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm border-t border-dark-600"
-                                    >
-                                        📄 Workout Plan (PDF)
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            try {
-                                                pdfService.generateClientReport(client, workoutPlans, payments);
-                                                showSuccess('Client Report PDF downloaded successfully');
-                                            } catch (error: any) {
-                                                showError(error.message || 'Failed to generate client report');
-                                            }
-                                            setShowExportMenu(false);
-                                        }}
-                                        className="w-full text-left px-4 py-2 hover:bg-dark-700 text-white text-sm"
-                                    >
-                                        📊 Full Client Report (PDF)
-                                    </button>
                                 </div>
                                 </div>
                             )}
@@ -316,7 +284,6 @@ const ClientDetailPage: React.FC = () => {
                         payments={payments}
                         logs={logs}
                         progress={progress}
-                        workoutPlans={workoutPlans}
                     />
                 )}
                 {activeTab === 'bio' && (
@@ -879,7 +846,6 @@ const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
     const [showEditExerciseModal, setShowEditExerciseModal] = useState(false);
     const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
     const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
-    const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
     const [newPlan, setNewPlan] = useState({ name: '', description: '' });
     const [editPlan, setEditPlan] = useState({ name: '', description: '' });
     const [newExercise, setNewExercise] = useState({
@@ -1058,136 +1024,89 @@ const WorkoutsTab: React.FC<{ clientId: string }> = ({ clientId }) => {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-white">Workout Program</h2>
-                <div className="flex gap-2">
-                    {workoutPlans.length > 0 && (
-                        <Button
-                            variant="secondary"
-                            onClick={async () => {
-                                try {
-                                    const clientData = await clientService.getClient(clientId);
-                                    pdfService.generateWorkoutPlan(clientData, workoutPlans);
-                                    showSuccess('Workout Plan PDF downloaded');
-                                } catch (error) {
-                                    showError('Failed to generate PDF');
-                                }
-                            }}
-                        >
-                            📄 Export PDF
-                        </Button>
-                    )}
-                    <Button onClick={() => setShowAddPlanModal(true)}>Add Workout Plan</Button>
-                </div>
+                <Button onClick={() => setShowAddPlanModal(true)}>Add Workout Plan</Button>
             </div>
 
             {workoutPlans.length > 0 ? (
                 <div className="space-y-4">
-                    {workoutPlans.map(plan => {
-                        const isExpanded = expandedPlanId === plan.id;
-
-                        return (
-                            <Card key={plan.id}>
-                                <div className="flex justify-between items-start">
-                                    <div
-                                        className="flex-1 cursor-pointer"
-                                        onClick={() => setExpandedPlanId(isExpanded ? null : plan.id)}
+                    {workoutPlans.map(plan => (
+                        <Card key={plan.id}>
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 className="text-xl font-semibold text-white">{plan.name}</h3>
+                                    {plan.description && (
+                                        <p className="text-sm text-gray-400 mt-1">{plan.description}</p>
+                                    )}
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button
+                                        size="sm"
+                                        onClick={() => {
+                                            setSelectedPlanId(plan.id);
+                                            setShowAddExerciseModal(true);
+                                        }}
                                     >
-                                        <div className="flex items-center gap-3">
-                                            <button className="text-gray-400 hover:text-white transition-colors">
-                                                {isExpanded ? (
-                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                    </svg>
-                                                ) : (
-                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                    </svg>
-                                                )}
-                                            </button>
-                                            <div>
-                                                <h3 className="text-xl font-semibold text-white">{plan.name}</h3>
-                                                {plan.description && (
-                                                    <p className="text-sm text-gray-400 mt-1">{plan.description}</p>
-                                                )}
-                                                <p className="text-xs text-gray-500 mt-1">
-                                                    {plan.exercises.length} exercise{plan.exercises.length !== 1 ? 's' : ''}
-                                                </p>
+                                        Add Exercise
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        onClick={() => handleEditPlan(plan)}
+                                    >
+                                        Edit Plan
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        onClick={() => handleRemovePlan(plan.id)}
+                                        className="bg-red-500 hover:bg-red-600"
+                                    >
+                                        Remove Plan
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {plan.exercises.length > 0 ? (
+                                <div className="space-y-2">
+                                    {plan.exercises.map((exercise, index) => (
+                                        <div key={exercise.id} className="p-3 bg-dark-800 rounded-lg flex justify-between items-center">
+                                            <div className="flex items-center gap-4">
+                                                <span className="text-brand-primary font-bold w-6">{index + 1}.</span>
+                                                <div>
+                                                    <p className="font-semibold text-white">{exercise.name}</p>
+                                                    <p className="text-sm text-gray-400">
+                                                        {exercise.sets} sets × {exercise.reps} reps
+                                                        {exercise.weight && ` @ ${exercise.weight}kg`}
+                                                        {exercise.rpe && ` • RPE: ${exercise.rpe}/10`}
+                                                        {' '}• Rest: {exercise.rest_period_seconds}s
+                                                    </p>
+                                                    {exercise.description && (
+                                                        <p className="text-xs text-gray-500 mt-1">{exercise.description}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={() => handleEditExercise(plan.id, exercise)}
+                                                    className="text-blue-400 hover:text-blue-300 text-sm"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => handleRemoveExercise(plan.id, exercise.id)}
+                                                    className="text-red-400 hover:text-red-300 text-sm"
+                                                >
+                                                    Remove
+                                                </button>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="flex gap-2 flex-shrink-0 ml-4">
-                                        <Button
-                                            size="sm"
-                                            onClick={() => {
-                                                setSelectedPlanId(plan.id);
-                                                setShowAddExerciseModal(true);
-                                            }}
-                                        >
-                                            Add Exercise
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="secondary"
-                                            onClick={() => handleEditPlan(plan)}
-                                        >
-                                            Edit
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="secondary"
-                                            onClick={() => handleRemovePlan(plan.id)}
-                                            className="bg-red-500 hover:bg-red-600"
-                                        >
-                                            Delete
-                                        </Button>
-                                    </div>
+                                    ))}
                                 </div>
-
-                                {isExpanded && (
-                                    <div className="mt-4 pt-4 border-t border-dark-700">
-                                        {plan.exercises.length > 0 ? (
-                                            <div className="space-y-2">
-                                                {plan.exercises.map((exercise, index) => (
-                                                    <div key={exercise.id} className="p-3 bg-dark-800 rounded-lg flex justify-between items-center">
-                                                        <div className="flex items-center gap-4">
-                                                            <span className="text-brand-primary font-bold w-6">{index + 1}.</span>
-                                                            <div>
-                                                                <p className="font-semibold text-white">{exercise.name}</p>
-                                                                <p className="text-sm text-gray-400">
-                                                                    {exercise.sets} sets × {exercise.reps} reps
-                                                                    {exercise.weight && ` @ ${exercise.weight}kg`}
-                                                                    {exercise.rpe && ` • RPE: ${exercise.rpe}/10`}
-                                                                    {' '}• Rest: {exercise.rest_period_seconds}s
-                                                                </p>
-                                                                {exercise.description && (
-                                                                    <p className="text-xs text-gray-500 mt-1">{exercise.description}</p>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex gap-3">
-                                                            <button
-                                                                onClick={() => handleEditExercise(plan.id, exercise)}
-                                                                className="text-blue-400 hover:text-blue-300 text-sm"
-                                                            >
-                                                                Edit
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleRemoveExercise(plan.id, exercise.id)}
-                                                                className="text-red-400 hover:text-red-300 text-sm"
-                                                            >
-                                                                Remove
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <p className="text-gray-400 text-center py-4">No exercises added yet</p>
-                                        )}
-                                    </div>
-                                )}
-                            </Card>
-                        );
-                    })}
+                            ) : (
+                                <p className="text-gray-400 text-center py-4">No exercises added yet</p>
+                            )}
+                        </Card>
+                    ))}
                 </div>
             ) : (
                 <Card className="text-center py-12">
