@@ -1,5 +1,5 @@
-const CACHE_NAME = 'trainrup-v2';
-const RUNTIME_CACHE = 'trainrup-runtime-v2';
+const CACHE_NAME = 'trainrup-v3';
+const RUNTIME_CACHE = 'trainrup-runtime-v3';
 
 // Assets to cache on install
 const PRECACHE_URLS = [
