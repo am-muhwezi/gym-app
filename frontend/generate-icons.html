@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Icon Generator</title>
+</head>
+<body>
+    <h1>TrainrUp Icon Generator</h1>
+    <p>Click the button to generate all PWA icons:</p>
+    <button onclick="generateIcons()">Generate Icons</button>
+    <div id="output"></div>
+
+    <script>
+        async function generateIcons() {
+            const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+            const output = document.getElementById('output');
+            output.innerHTML = '<p>Generating icons...</p>';
+
+            const svg = `
+                <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="512" height="512" rx="100" fill="#10B981"/>
+                    <path d="M150 150H362V210H290V362H222V210H150V150Z" fill="white"/>
+                    <circle cx="380" cy="380" r="30" fill="white" opacity="0.9"/>
+                    <circle cx="430" cy="380" r="20" fill="white" opacity="0.9"/>
+                    <rect x="380" y="375" width="50" height="10" fill="white" opacity="0.9"/>
+                </svg>
+            `;
+
+            for (const size of sizes) {
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+
+                const img = new Image();
+                const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
+
+                await new Promise((resolve) => {
+                    img.onload = () => {
+                        ctx.drawImage(img, 0, 0, size, size);
+                        canvas.toBlob((blob) => {
+                            const link = document.createElement('a');
+                            link.download = `icon-${size}x${size}.png`;
+                            link.href = URL.createObjectURL(blob);
+                            link.textContent = `Download icon-${size}x${size}.png`;
+                            link.style.display = 'block';
+                            link.style.margin = '5px';
+                            output.appendChild(link);
+                            link.click();
+                            resolve();
+                        });
+                        URL.revokeObjectURL(url);
+                    };
+                    img.src = url;
+                });
+            }
+
+            output.innerHTML += '<p style="color: green; font-weight: bold;">All icons generated! Download and place them in the public/icons/ folder.</p>';
+        }
+    </script>
+</body>
+</html>
