@@ -3,6 +3,16 @@
  * Centralized API client for all backend communication
  */
 
+// Add type definitions for Vite env variables
+interface ImportMetaEnv {
+  readonly VITE_API_BASE_URL?: string;
+  // add other env variables here if needed
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
 // Auto-detect protocol based on current page for security
 const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_BASE_URL) {
@@ -16,7 +26,7 @@ const getApiBaseUrl = () => {
 
     // If on trainrup.fit domain, use production API
     if (hostname.includes('trainrup.fit')) {
-      return `${protocol}//${hostname}/api`;
+      return `https://api.trainrup.fit`;
     }
   }
 
