@@ -144,7 +144,7 @@ const ClientsListPage: React.FC = () => {
             await clientService.createClient({
                 first_name: firstName,
                 last_name: lastName,
-                email: email,
+                email: email || null,
                 phone: phone,
                 gender: gender || undefined,
                 dob: dob || undefined,

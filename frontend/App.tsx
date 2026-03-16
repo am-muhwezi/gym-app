@@ -21,6 +21,14 @@ import TrainerDetailPage from './pages/TrainerDetailPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import BlockedAccountPage from './pages/BlockedAccountPage';
 import ProfilePage from './pages/ProfilePage';
+// PAUSED - Library feature (re-enable imports and routes below when ready)
+// import {
+//   ExercisesLibraryPage,
+//   WorkoutsLibraryPage,
+//   ProgramsLibraryPage,
+//   WorkoutBuilderPage,
+//   ProgramBuilderPage
+// } from './pages/library';
 
 // Terms Redirect Component
 const TermsRedirect: React.FC = () => {
@@ -177,6 +185,18 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
+
+            {/* Library Routes - PAUSED (uncomment when library is ready)
+            <Route path="/library" element={<ProtectedRoute><MainLayout><ExercisesLibraryPage /></MainLayout></ProtectedRoute>} />
+            <Route path="/library/exercises" element={<ProtectedRoute><MainLayout><ExercisesLibraryPage /></MainLayout></ProtectedRoute>} />
+            <Route path="/library/workouts" element={<ProtectedRoute><MainLayout><WorkoutsLibraryPage /></MainLayout></ProtectedRoute>} />
+            <Route path="/library/workouts/builder" element={<ProtectedRoute><MainLayout><WorkoutBuilderPage /></MainLayout></ProtectedRoute>} />
+            <Route path="/library/workouts/builder/:id" element={<ProtectedRoute><MainLayout><WorkoutBuilderPage /></MainLayout></ProtectedRoute>} />
+            <Route path="/library/programs" element={<ProtectedRoute><MainLayout><ProgramsLibraryPage /></MainLayout></ProtectedRoute>} />
+            <Route path="/library/programs/builder" element={<ProtectedRoute><MainLayout><ProgramBuilderPage /></MainLayout></ProtectedRoute>} />
+            <Route path="/library/programs/builder/:id" element={<ProtectedRoute><MainLayout><ProgramBuilderPage /></MainLayout></ProtectedRoute>} />
+            */}
+
             <Route
               path="/bookings"
               element={

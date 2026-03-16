@@ -3,7 +3,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import LoadMore from '../components/ui/LoadMore';
 import Modal from '../components/ui/Modal';
-import { Booking, PaginatedResponse, BookingCreatePayload } from '../types';
+import { Booking, PaginatedResponse, BookingCreatePayload, BookingUpdatePayload } from '../types';
 import { bookingService } from '../services';
 import { usePagination } from '../hooks/usePagination';
 import { useClients } from '../context/ClientContext';
@@ -152,6 +152,8 @@ const BookingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'today' | 'all'>('upcoming');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [editModeBooking, setEditModeBooking] = useState(false);
+  const [cancellingBooking, setCancellingBooking] = useState<Booking | null>(null);
   const [allBookings, setAllBookings] = useState<Booking[]>([]);
   const [stats, setStats] = useState({
     upcoming: 0,
@@ -247,10 +249,14 @@ const BookingsPage: React.FC = () => {
     }
   };
 
-  const handleCancelBooking = async (bookingId: string) => {
-    const reason = prompt('Cancellation reason (optional):');
+  const handleCancelBooking = (booking: Booking) => {
+    setCancellingBooking(booking);
+  };
+
+  const confirmCancelBooking = async (bookingId: string, reason: string) => {
     try {
       await bookingService.cancelBooking(bookingId, reason || undefined);
+      setCancellingBooking(null);
       refresh();
     } catch (error) {
       console.error('Failed to cancel booking:', error);
@@ -413,30 +419,43 @@ const BookingsPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  {booking.status === 'scheduled' || booking.status === 'confirmed' ? (
-                    <div className="flex gap-2">
-                      <Button
-                        variant="secondary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCompleteBooking(booking.id);
-                        }}
-                        className="text-sm"
-                      >
-                        Complete
-                      </Button>
-                      <Button
-                        variant="danger"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCancelBooking(booking.id);
-                        }}
-                        className="text-sm"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  ) : null}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditModeBooking(true);
+                        setSelectedBooking(booking);
+                      }}
+                      className="text-sm"
+                    >
+                      Edit
+                    </Button>
+                    {(booking.status === 'scheduled' || booking.status === 'confirmed') && (
+                      <>
+                        <Button
+                          variant="secondary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCompleteBooking(booking.id);
+                          }}
+                          className="text-sm"
+                        >
+                          Complete
+                        </Button>
+                        <Button
+                          variant="danger"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCancelBooking(booking);
+                          }}
+                          className="text-sm"
+                        >
+                          Cancel
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </Card>
             ))}
@@ -487,8 +506,18 @@ const BookingsPage: React.FC = () => {
       {selectedBooking && (
         <BookingDetailsModal
           booking={selectedBooking}
-          onClose={() => setSelectedBooking(null)}
+          initialEditMode={editModeBooking}
+          onClose={() => { setSelectedBooking(null); setEditModeBooking(false); }}
           onUpdate={refresh}
+        />
+      )}
+
+      {/* Cancel Booking Modal */}
+      {cancellingBooking && (
+        <CancelBookingModal
+          booking={cancellingBooking}
+          onClose={() => setCancellingBooking(null)}
+          onConfirm={confirmCancelBooking}
         />
       )}
     </div>
@@ -663,77 +692,321 @@ const CreateBookingModal: React.FC<{
 // Booking Details Modal Component
 const BookingDetailsModal: React.FC<{
   booking: Booking;
+  initialEditMode?: boolean;
   onClose: () => void;
   onUpdate: () => void;
-}> = ({ booking, onClose, onUpdate }) => {
+}> = ({ booking, initialEditMode = false, onClose, onUpdate }) => {
+  const [isEditing, setIsEditing] = useState(initialEditMode);
+  const [formData, setFormData] = useState<BookingUpdatePayload>({
+    title: booking.title,
+    session_type: booking.session_type,
+    session_date: booking.session_date,
+    start_time: booking.start_time,
+    end_time: booking.end_time,
+    duration_minutes: booking.duration_minutes,
+    location: booking.location,
+    status: booking.status,
+    description: booking.description || '',
+    trainer_notes: booking.trainer_notes || '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSave = async () => {
+    setError('');
+    if (!formData.title || !formData.session_date || !formData.start_time || !formData.end_time) {
+      setError('Title, date, and times are required');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await bookingService.updateBooking(booking.id, formData);
+      onUpdate();
+      setIsEditing(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update booking');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const inputClass = 'w-full p-2 bg-dark-800 text-white rounded-lg border border-dark-700 focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm';
+
   return (
-    <Modal title="Booking Details" onClose={onClose} isOpen={true} size="lg">
+    <Modal title={isEditing ? 'Edit Booking' : 'Booking Details'} onClose={onClose} isOpen={true} size="lg">
+      <div className="space-y-4">
+        {error && (
+          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+            {error}
+          </div>
+        )}
+
+        {isEditing ? (
+          <>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Client</label>
+              <p className="text-white text-sm font-medium">{booking.client_name}</p>
+            </div>
+
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Title *</label>
+              <input
+                type="text"
+                value={formData.title || ''}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className={inputClass}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Session Type</label>
+                <select
+                  value={formData.session_type}
+                  onChange={(e) => setFormData({ ...formData, session_type: e.target.value as any })}
+                  className={inputClass}
+                >
+                  <option value="personal_training">Personal Training</option>
+                  <option value="group_class">Group Class</option>
+                  <option value="consultation">Consultation</option>
+                  <option value="assessment">Assessment</option>
+                  <option value="virtual">Virtual Session</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Status</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                  className={inputClass}
+                >
+                  <option value="scheduled">Scheduled</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="no_show">No Show</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Date *</label>
+                <input
+                  type="date"
+                  value={formData.session_date || ''}
+                  onChange={(e) => setFormData({ ...formData, session_date: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Duration (min)</label>
+                <input
+                  type="number"
+                  value={formData.duration_minutes}
+                  onChange={(e) => setFormData({ ...formData, duration_minutes: parseInt(e.target.value) })}
+                  className={inputClass}
+                  min="15"
+                  step="15"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Start Time *</label>
+                <input
+                  type="time"
+                  value={formData.start_time || ''}
+                  onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">End Time *</label>
+                <input
+                  type="time"
+                  value={formData.end_time || ''}
+                  onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Location</label>
+              <input
+                type="text"
+                value={formData.location || ''}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                className={inputClass}
+                placeholder="Gym"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Description</label>
+              <textarea
+                value={formData.description || ''}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className={inputClass}
+                rows={2}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Trainer Notes (private)</label>
+              <textarea
+                value={formData.trainer_notes || ''}
+                onChange={(e) => setFormData({ ...formData, trainer_notes: e.target.value })}
+                className={inputClass}
+                rows={2}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <h3 className="text-xl font-bold text-white">{booking.title}</h3>
+              <p className="text-gray-400">{booking.client_name}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-gray-400">Date</p>
+                <p className="text-white">{new Date(booking.session_date).toLocaleDateString()}</p>
+              </div>
+              <div>
+                <p className="text-gray-400">Time</p>
+                <p className="text-white">{booking.start_time} - {booking.end_time}</p>
+              </div>
+              <div>
+                <p className="text-gray-400">Duration</p>
+                <p className="text-white">{booking.duration_minutes} minutes</p>
+              </div>
+              <div>
+                <p className="text-gray-400">Location</p>
+                <p className="text-white">{booking.location}</p>
+              </div>
+              <div>
+                <p className="text-gray-400">Status</p>
+                <p className="text-white capitalize">{booking.status_display || booking.status}</p>
+              </div>
+              <div>
+                <p className="text-gray-400">Type</p>
+                <p className="text-white">{booking.session_type_display || booking.session_type}</p>
+              </div>
+            </div>
+
+            {booking.description && (
+              <div>
+                <p className="text-gray-400 text-sm">Description</p>
+                <p className="text-white">{booking.description}</p>
+              </div>
+            )}
+
+            {booking.trainer_notes && (
+              <div>
+                <p className="text-gray-400 text-sm">Trainer Notes</p>
+                <p className="text-white">{booking.trainer_notes}</p>
+              </div>
+            )}
+
+            {booking.session_summary && (
+              <div>
+                <p className="text-gray-400 text-sm">Session Summary</p>
+                <p className="text-white">{booking.session_summary}</p>
+              </div>
+            )}
+
+            {booking.client_rating && (
+              <div>
+                <p className="text-gray-400 text-sm">Client Rating</p>
+                <p className="text-white">{'⭐'.repeat(booking.client_rating)}</p>
+              </div>
+            )}
+          </>
+        )}
+
+        <div className="flex justify-between gap-3 pt-4">
+          <div>
+            {!isEditing && (
+              <Button onClick={() => setIsEditing(true)}>
+                Edit Booking
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-3">
+            {isEditing ? (
+              <>
+                <Button
+                  variant="secondary"
+                  onClick={() => { setIsEditing(false); setError(''); }}
+                  disabled={submitting}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleSave} disabled={submitting}>
+                  {submitting ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </>
+            ) : (
+              <Button variant="secondary" onClick={onClose}>
+                Close
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
+// Cancel Booking Modal Component
+const CancelBookingModal: React.FC<{
+  booking: Booking;
+  onClose: () => void;
+  onConfirm: (bookingId: string, reason: string) => Promise<void>;
+}> = ({ booking, onClose, onConfirm }) => {
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleConfirm = async () => {
+    setSubmitting(true);
+    await onConfirm(booking.id, reason);
+    setSubmitting(false);
+  };
+
+  return (
+    <Modal title="Cancel Booking" onClose={onClose} isOpen={true} size="sm">
       <div className="space-y-4">
         <div>
-          <h3 className="text-xl font-bold text-white">{booking.title}</h3>
-          <p className="text-gray-400">{booking.client_name}</p>
+          <p className="text-white font-medium">{booking.title}</p>
+          <p className="text-gray-400 text-sm">{booking.client_name} &mdash; {new Date(booking.session_date).toLocaleDateString()}</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-gray-400">Date</p>
-            <p className="text-white">{new Date(booking.session_date).toLocaleDateString()}</p>
-          </div>
-          <div>
-            <p className="text-gray-400">Time</p>
-            <p className="text-white">
-              {booking.start_time} - {booking.end_time}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-400">Duration</p>
-            <p className="text-white">{booking.duration_minutes} minutes</p>
-          </div>
-          <div>
-            <p className="text-gray-400">Location</p>
-            <p className="text-white">{booking.location}</p>
-          </div>
-          <div>
-            <p className="text-gray-400">Status</p>
-            <p className="text-white capitalize">{booking.status_display || booking.status}</p>
-          </div>
-          <div>
-            <p className="text-gray-400">Type</p>
-            <p className="text-white">{booking.session_type_display || booking.session_type}</p>
-          </div>
+        <p className="text-gray-300 text-sm">Are you sure you want to cancel this booking?</p>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Reason (optional)
+          </label>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="e.g. Client requested reschedule"
+            rows={3}
+            className="w-full p-3 bg-dark-800 text-white rounded-lg border border-dark-700 focus:outline-none focus:ring-2 focus:ring-brand-primary placeholder-gray-500 text-sm resize-none"
+          />
         </div>
 
-        {booking.description && (
-          <div>
-            <p className="text-gray-400 text-sm">Description</p>
-            <p className="text-white">{booking.description}</p>
-          </div>
-        )}
-
-        {booking.trainer_notes && (
-          <div>
-            <p className="text-gray-400 text-sm">Trainer Notes</p>
-            <p className="text-white">{booking.trainer_notes}</p>
-          </div>
-        )}
-
-        {booking.session_summary && (
-          <div>
-            <p className="text-gray-400 text-sm">Session Summary</p>
-            <p className="text-white">{booking.session_summary}</p>
-          </div>
-        )}
-
-        {booking.client_rating && (
-          <div>
-            <p className="text-gray-400 text-sm">Client Rating</p>
-            <p className="text-white">{'⭐'.repeat(booking.client_rating)}</p>
-          </div>
-        )}
-
-        <div className="flex justify-end gap-3 pt-4">
-          <Button variant="secondary" onClick={onClose}>
-            Close
+        <div className="flex justify-end gap-3 pt-2">
+          <Button variant="secondary" onClick={onClose} disabled={submitting}>
+            Keep Booking
+          </Button>
+          <Button variant="danger" onClick={handleConfirm} disabled={submitting}>
+            {submitting ? 'Cancelling...' : 'Cancel Booking'}
           </Button>
         </div>
       </div>

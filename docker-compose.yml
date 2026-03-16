@@ -1,0 +1,42 @@
+volumes:
+  postgres_data:
+
+services:
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: trainrup_backend
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - trainrup_network
+    restart: unless-stopped
+    command: >
+      sh -c "sleep 2 &&
+             python manage.py makemigrations &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: trainrup_postgres
+    env_file: .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    networks:
+      - trainrup_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trainrup_user -d trainrup_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  trainrup_network:
+    driver: bridge

@@ -218,9 +218,9 @@ class ClientSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         """Validate email is unique per trainer (excluding current instance on update)"""
-        # Allow empty email
+        # Convert empty string to None so it stores as NULL (not subject to unique constraint)
         if not value:
-            return value
+            return None
 
         instance = self.instance
         request = self.context.get('request')
@@ -311,9 +311,9 @@ class ClientCreateUpdateSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         """Validate email is unique per trainer"""
-        # Allow empty email
+        # Convert empty string to None so it stores as NULL (not subject to unique constraint)
         if not value:
-            return value
+            return None
 
         instance = self.instance
         request = self.context.get('request')

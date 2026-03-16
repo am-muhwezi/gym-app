@@ -1,6 +1,6 @@
 from pathlib import Path
 from decouple import config
-from dj_database_url import parse as db_url_parse
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'payments.apps.PaymentsConfig',
     'bookings.apps.BookingsConfig',
     'analytics.apps.AnalyticsConfig',
+    # 'library.apps.LibraryConfig',  # PAUSED - re-enable when library is ready
 
     # Third-party-apps
     'rest_framework',
@@ -109,10 +110,10 @@ WSGI_APPLICATION = 'gymapp.wsgi.application'
 
 
 # Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 DATABASES = {
-    "default": db_url_parse(config("DATABASE_URL"))
+    "default" : dj_database_url.parse(config("DATABASE_URL"))
 }
 
 

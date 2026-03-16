@@ -29,7 +29,13 @@ class Client(models.Model):
     # Basic Info
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    email = models.EmailField(max_length=255, blank=True, null=True)
+    email = models.EmailField(
+        max_length=255,
+        blank=True,
+        null=True,
+        unique=True,
+        help_text="Optional email address for the client"
+    )
     phone = models.CharField(max_length=20)
     dob = models.DateField(null=True, blank=True, verbose_name="Date of Birth")
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True)

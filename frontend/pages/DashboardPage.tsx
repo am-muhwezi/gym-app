@@ -154,7 +154,7 @@ const DashboardPage: React.FC = () => {
                             <div
                                 key={booking.id}
                                 className="flex items-center justify-between p-4 bg-dark-800 rounded-lg hover:bg-dark-700 cursor-pointer transition-colors border border-dark-700"
-                                onClick={() => navigate(`/bookings/${booking.id}`)}
+                                onClick={() => navigate('/bookings')}
                             >
                                 <div className="flex items-center gap-4 flex-1">
                                     <div className="flex items-center gap-2 text-brand-primary min-w-[100px]">
@@ -209,7 +209,7 @@ const DashboardPage: React.FC = () => {
                             <div
                                 key={booking.id}
                                 className="flex items-center justify-between p-3 bg-dark-800 rounded-lg hover:bg-dark-700 cursor-pointer transition-colors"
-                                onClick={() => navigate(`/bookings/${booking.id}`)}
+                                onClick={() => navigate('/bookings')}
                             >
                                 <div className="flex items-center gap-3 flex-1">
                                     <div className="text-center min-w-[60px]">

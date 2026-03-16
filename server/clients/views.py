@@ -132,8 +132,19 @@ class ClientViewSet(viewsets.ModelViewSet):
             )
 
         except Exception as e:
+            from django.db import IntegrityError
+            if isinstance(e, IntegrityError):
+                error_str = str(e)
+                if 'email' in error_str:
+                    message = 'A client with this email already exists.'
+                elif 'phone' in error_str:
+                    message = 'A client with this phone number already exists.'
+                else:
+                    message = 'A client with these details already exists.'
+            else:
+                message = 'Failed to create client. Please check the details and try again.'
             return Response(
-                {'error': str(e)},
+                {'error': message},
                 status=status.HTTP_400_BAD_REQUEST
             )
 

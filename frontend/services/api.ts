@@ -112,9 +112,9 @@ class ApiClient {
         }
       }
 
-      // Fallback to detail or message
+      // Fallback to detail, message, or error fields
       if (!errorMessage) {
-        errorMessage = errorData.detail || errorData.message || `HTTP Error: ${response.status}`;
+        errorMessage = errorData.detail || errorData.message || errorData.error || `HTTP Error: ${response.status}`;
       }
 
       throw new Error(errorMessage);

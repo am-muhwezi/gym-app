@@ -117,7 +117,7 @@ export const authService = {
      */
     async deleteAccount(password: string): Promise<{ message: string }> {
         const response = await apiClient.delete<{ message: string }>('/auth/profile/delete/', {
-            password,
+            body: JSON.stringify({ password }),
         });
         return response;
     },

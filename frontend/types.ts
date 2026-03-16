@@ -589,3 +589,198 @@ export interface PerformanceMetrics {
     client_growth_percentage: number;
   };
 }
+
+// ============ LIBRARY TYPES ============
+
+export type ExerciseModality =
+  | 'warmup' | 'cooldown' | 'cardio' | 'conditioning'
+  | 'mobility' | 'strength' | 'power' | 'yoga' | 'weightlifting';
+
+export type MuscleGroup =
+  | 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'forearms'
+  | 'abs' | 'lower_back' | 'glutes' | 'quads' | 'hamstrings'
+  | 'adductors' | 'abductors' | 'calves' | 'shins';
+
+export type ExerciseCategory = 'strength' | 'bodyweight' | 'timed';
+
+export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
+
+export interface ExerciseLibrary {
+  id: string;
+  trainer: string | null;
+  trainer_name: string | null;
+  name: string;
+  description: string;
+  video_url: string | null;
+  image_url: string | null;
+  is_global: boolean;
+  modality: ExerciseModality;
+  modality_display: string;
+  muscle_groups: MuscleGroup[];
+  category: ExerciseCategory;
+  category_display: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExerciseLibraryCreatePayload {
+  name: string;
+  description?: string;
+  video_url?: string;
+  image_url?: string;
+  modality: ExerciseModality;
+  muscle_groups: MuscleGroup[];
+  category: ExerciseCategory;
+}
+
+export interface WorkoutExercise {
+  id: string;
+  exercise: ExerciseLibrary;
+  order: number;
+  sets: number | null;
+  reps: number | null;
+  weight: number | null;
+  duration_seconds: number | null;
+  rest_period_seconds: number;
+  notes: string;
+}
+
+export interface WorkoutExerciseCreatePayload {
+  exercise: string;
+  order: number;
+  sets?: number;
+  reps?: number;
+  weight?: number;
+  duration_seconds?: number;
+  rest_period_seconds: number;
+  notes?: string;
+}
+
+export interface WorkoutTemplate {
+  id: string;
+  trainer: string;
+  trainer_name: string;
+  name: string;
+  description: string;
+  duration_minutes: number | null;
+  difficulty_level: DifficultyLevel;
+  difficulty_level_display: string;
+  workout_exercises: WorkoutExercise[];
+  exercise_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkoutTemplateCreatePayload {
+  name: string;
+  description?: string;
+  duration_minutes?: number;
+  difficulty_level: DifficultyLevel;
+  exercises?: WorkoutExerciseCreatePayload[];
+}
+
+export type ProgramDuration = '4_weeks' | '8_weeks' | '12_weeks' | '16_weeks';
+export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
+export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+
+export interface ProgramDay {
+  id: string;
+  day_number: number;
+  day_of_week: DayOfWeek;
+  day_of_week_display: string;
+  title: string;
+  workout_template: WorkoutTemplate | null;
+  notes: string;
+  is_rest_day: boolean;
+}
+
+export interface ProgramWeek {
+  id: string;
+  week_number: number;
+  title: string;
+  description: string;
+  days: ProgramDay[];
+}
+
+export interface Program {
+  id: string;
+  trainer: string;
+  trainer_name: string;
+  name: string;
+  description: string;
+  duration: ProgramDuration;
+  duration_display: string;
+  modality: ExerciseModality;
+  modality_display: string;
+  experience_level: ExperienceLevel;
+  experience_level_display: string;
+  goals: string;
+  requirements: string;
+  weeks: ProgramWeek[];
+  total_weeks: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProgramCreatePayload {
+  name: string;
+  description?: string;
+  duration: ProgramDuration;
+  modality: ExerciseModality;
+  experience_level: ExperienceLevel;
+  goals?: string;
+  requirements?: string;
+}
+
+export type WorkoutAssignmentStatus = 'scheduled' | 'in_progress' | 'completed' | 'skipped';
+
+export interface ClientWorkoutAssignment {
+  id: string;
+  client: string;
+  client_name: string;
+  trainer: string;
+  workout_template: WorkoutTemplate;
+  assigned_date: string;
+  notes: string;
+  status: WorkoutAssignmentStatus;
+  status_display: string;
+  completed: boolean;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClientWorkoutAssignmentCreatePayload {
+  client: string;
+  workout_template: string;
+  assigned_date: string;
+  notes?: string;
+}
+
+export type ProgramAssignmentStatus = 'active' | 'completed' | 'paused' | 'cancelled';
+
+export interface ClientProgramAssignment {
+  id: string;
+  client: string;
+  client_name: string;
+  trainer: string;
+  program: Program;
+  start_date: string;
+  end_date: string;
+  status: ProgramAssignmentStatus;
+  status_display: string;
+  current_week: number;
+  current_day: number;
+  completed_workouts: number;
+  total_workouts: number;
+  progress_percentage: number;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+}
+
+export interface ClientProgramAssignmentCreatePayload {
+  client: string;
+  program: string;
+  start_date: string;
+}

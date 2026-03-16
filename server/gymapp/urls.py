@@ -10,5 +10,6 @@ urlpatterns = [
     path('api/bookings/', include('bookings.urls')),
     path('api/payments/', include('payments.urls')),
     path('api/analytics/', include('analytics.urls')),
+    # path('api/library/', include('library.urls')),  # PAUSED - re-enable when library is ready
     path('api/auth/', include('authentication.urls')),
 ]
