@@ -115,3 +115,7 @@ server/.dockerignore
 Terms/email-template-terms.html
 Terms/TERMS_SHARING_GUIDE.md
 Terms/terms-and-conditions.html
+
+
+# Docker File Deployment files
+docker-compose.yml
